@@ -5,25 +5,34 @@ import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.event.Logging
 import akka.io.{IO, Tcp}
 import akka.util.ByteString
+import com.google.inject.assistedinject.Assisted
+import net.TcpServer.createActor
+import play.api.Logger
+import play.api.libs.concurrent.InjectedActorSupport
 
 import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicReference
+import javax.inject.{Inject, Named, Singleton}
 import scala.annotation.tailrec
 
 sealed case class Message(message: String)
 case object ClearConnection
 
+sealed case class TcpServerParams(port: Int, id:String, phisicalObject: String, channelName: String )
 
-class TcpServer(address: String, port: Int) extends Actor {
+
+class TcpServer @Inject() (@Named("HostIp") address: String, @Assisted params: TcpServerParams) extends Actor {
 
   import akka.io.Tcp._
   import context.system
 
   private val log = Logging(context.system, this)
 
+  log.info(s"Parameters TCP Server: $address  ${params.port}  ${params.id}  ${params.phisicalObject}  ${params.channelName}")
+
   private val connection: AtomicReference[Option[ActorRef]] = new AtomicReference[Option[ActorRef]](None)
 
-  IO(Tcp) ! Bind(self, new InetSocketAddress(address, port))
+  IO(Tcp) ! Bind(self, new InetSocketAddress(address, params.port))
 
   def receive: Receive = {
 
@@ -99,16 +108,30 @@ class SimplisticHandler(manager:ActorRef, connection: ActorRef, local:InetSocket
 
 }
 
+@Singleton
+class TcpServerBuilder @Inject()(factory: TcpServer.BuildFactory)(implicit system: ActorSystem) extends InjectedActorSupport  {
+  val logger: Logger = Logger(this.getClass)
+  logger.info("Load TcpServerBuilder")
 
+  def openServer(port: Int, id:String, phisicalObject: String, channelName: String ):ActorRef = {
+
+    val params = TcpServerParams(port, id, phisicalObject, channelName )
+
+    val server: ActorRef = createActor(factory(params), port.toString)
+    server
+  }
+
+}
 
 
 object TcpServer {
 
-  def openServer(address: String, port: Int)(implicit system: ActorSystem): ActorRef = {
-    val serverProps: Props = Props( new TcpServer(address, port))
-    val server = system.actorOf(serverProps)
-    server
+  trait  BuildFactory {
+    def apply(params: TcpServerParams ):Actor
   }
 
+  def createActor(create: => Actor, name: String, props: Props => Props = identity)(implicit system: ActorSystem): ActorRef = {
+    system.actorOf(props(Props(create)), name)
+  }
 
 }

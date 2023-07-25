@@ -2,7 +2,7 @@ package services.start
 
 import akka.actor.{ActorRef, ActorSystem, Scheduler}
 import models.configs.{Serverconf, TcpConf}
-import net.{Message, TcpServer}
+import net.{Message, TcpServerBuilder}
 import play.api.inject.{ApplicationLifecycle, Injector}
 import play.api.libs.json.{JsValue, Json}
 import play.api.{Application, Configuration, Logger, Play}
@@ -18,7 +18,7 @@ import scala.util.{Failure, Success, Try, Using}
 trait InterfaceStart
 
 @Singleton
-class ApplicationStartDebug @Inject()(lifecycle: ApplicationLifecycle, environment: play.api.Environment, injector: Injector, config: Configuration, implicit val system: ActorSystem) extends InterfaceStart {
+class ApplicationStartDebug @Inject()(lifecycle: ApplicationLifecycle, environment: play.api.Environment, injector: Injector, config: Configuration,tcpBuilder: TcpServerBuilder, implicit val system: ActorSystem) extends InterfaceStart {
   val logger: Logger = Logger(this.getClass)
   logger.info("DEBUG ApplicationStart")
   // хук шатдауна
@@ -76,21 +76,31 @@ class ApplicationStartDebug @Inject()(lifecycle: ApplicationLifecycle, environme
   } else Play.stop(injector.instanceOf[Application])
 
 
-  //тест чтения конфигурации TCP серверов
+  //тест чтения конфигурации TCP серверов и отладка серверов
   if (config.has("tcp-servers")) {
     val tcpconf: TcpConf = config.get[TcpConf]("tcp-servers")
     logger.info(s"Конфигурация TCP серверов   $tcpconf")
+
+    val servers: Seq[ActorRef] = tcpconf.servers.map{
+      confServer =>
+        val serv = tcpBuilder.openServer(  confServer.port, confServer.id, confServer.phisicalObject, confServer.channelName )
+        serv
+    }
+
+    val task: java.lang.Runnable = () => {
+      servers.foreach( _ ! Message(s"Тест TCP\n") )
+    }
+
+    val scheduler: Scheduler = system.scheduler
+    val dispatcher = system.dispatcher
+    scheduler.scheduleWithFixedDelay(1 seconds, 5 seconds)(task)(dispatcher)
+
   }
 
 
-  //отладка TCP сервера
-  private val serv: ActorRef = TcpServer.openServer("0.0.0.0", 8876 )
-  private val task: java.lang.Runnable = () => {
-    serv ! Message("Тест TCP\n")
-  }
-  private val scheduler: Scheduler = system.scheduler
-  private val dispatcher = system.dispatcher
-  scheduler.scheduleWithFixedDelay(1 seconds, 5 seconds)(task)(dispatcher)
+
+
+
 
 
 }
