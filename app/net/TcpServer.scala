@@ -9,6 +9,8 @@ import com.google.inject.assistedinject.Assisted
 import net.TcpServer.createActor
 import play.api.Logger
 import play.api.libs.concurrent.InjectedActorSupport
+import services.businesslogic.dispatchers.PhisicalObject._
+import services.businesslogic.managers.PhisicalObjectsManager
 
 import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicReference
@@ -21,7 +23,9 @@ case object ClearConnection
 sealed case class TcpServerParams(port: Int, id:String, phisicalObject: String, channelName: String )
 
 
-class TcpServer @Inject() (@Named("HostIp") address: String, @Assisted params: TcpServerParams) extends Actor {
+class TcpServer @Inject() (@Named("HostIp") address: String,
+                           manager: PhisicalObjectsManager,
+                           @Assisted params: TcpServerParams) extends Actor {
 
   import akka.io.Tcp._
   import context.system
@@ -29,6 +33,12 @@ class TcpServer @Inject() (@Named("HostIp") address: String, @Assisted params: T
   private val log = Logging(context.system, this)
 
   log.info(s"Parameters TCP Server: $address  ${params.port}  ${params.id}  ${params.phisicalObject}  ${params.channelName}")
+  private val phisicalOpt: Option[ActorRef] = manager.getPhisicalObjectByName(params.phisicalObject)
+
+  phisicalOpt match {
+    case Some(ph) => ph ! PrintNameEvent
+    case None => log.error(s"Не найден физичяеский объект по имени ${params.phisicalObject}")
+  }
 
   private val connection: AtomicReference[Option[ActorRef]] = new AtomicReference[Option[ActorRef]](None)
 
@@ -45,10 +55,11 @@ class TcpServer @Inject() (@Named("HostIp") address: String, @Assisted params: T
 
 
       val connection: ActorRef = sender()
-      val hndProps: Props = Props( new SimplisticHandler( self, connection, local))
+      val hndProps: Props = Props( new SimplisticHandler( self, connection, local, phisicalOpt, params))
       val handler: ActorRef = context.actorOf(hndProps)
 
       connection ! Register(handler)
+
       setConnection(connection, local.getPort)
       log.info(s"Connection open remote ${remote.getAddress}:${remote.getPort} to local ${local.getAddress}:${local.getPort}")
 
@@ -82,9 +93,14 @@ class TcpServer @Inject() (@Named("HostIp") address: String, @Assisted params: T
 
 }
 
-class SimplisticHandler(manager:ActorRef, connection: ActorRef, local:InetSocketAddress) extends Actor {
+class SimplisticHandler(manager:ActorRef,
+                        connection: ActorRef,
+                        local:InetSocketAddress,
+                        phisicalOpt: Option[ActorRef] ,
+                        params: TcpServerParams) extends Actor {
 
   import Tcp._
+
 
   private val log = Logging(context.system, this)
   context.watch(connection)
@@ -95,8 +111,16 @@ class SimplisticHandler(manager:ActorRef, connection: ActorRef, local:InetSocket
 
   def receive: Receive = {
     case Received(data) =>
-      val str = data.utf8String.trim + "!!!\n"
-      sender() ! Write(ByteString(str))
+      val strEcho = data.utf8String.trim + "!!!\n"
+      sender() ! Write(ByteString(strEcho))
+
+      val strData = data.utf8String.trim
+
+      phisicalOpt match {
+        case Some(phisical) =>
+          phisical ! TcpMessageEvent(params.id, params.phisicalObject, params.channelName, strData )
+        case None => log.error(s"Не найден физический объект для TCP - сервера на порту ${local.getPort}")
+      }
 
     case PeerClosed =>
       log.info(s"Connection closed $connection")

@@ -87,13 +87,13 @@ class ApplicationStartDebug @Inject()(lifecycle: ApplicationLifecycle, environme
         serv
     }
 
-    val task: java.lang.Runnable = () => {
-      servers.foreach( _ ! Message(s"Тест TCP\n") )
-    }
-
-    val scheduler: Scheduler = system.scheduler
-    val dispatcher = system.dispatcher
-    scheduler.scheduleWithFixedDelay(1 seconds, 5 seconds)(task)(dispatcher)
+//    val task: java.lang.Runnable = () => {
+//      servers.foreach( _ ! Message(s"Тест TCP\n") )
+//    }
+//
+//    val scheduler: Scheduler = system.scheduler
+//    val dispatcher = system.dispatcher
+//    scheduler.scheduleWithFixedDelay(1 seconds, 5 seconds)(task)(dispatcher)
 
   }
 
