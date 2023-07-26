@@ -77,15 +77,15 @@ class ApplicationStartDebug @Inject()(lifecycle: ApplicationLifecycle, environme
 
 
   //тест чтения конфигурации TCP серверов и отладка серверов
-  if (config.has("tcp-servers")) {
-    val tcpconf: TcpConf = config.get[TcpConf]("tcp-servers")
-    logger.info(s"Конфигурация TCP серверов   $tcpconf")
-
-    val servers: Seq[ActorRef] = tcpconf.servers.map{
-      confServer =>
-        val serv = tcpBuilder.openServer(  confServer.port, confServer.id, confServer.phisicalObject, confServer.channelName )
-        serv
-    }
+//  if (config.has("tcp-servers")) {
+//    val tcpconf: TcpConf = config.get[TcpConf]("tcp-servers")
+//    logger.info(s"Конфигурация TCP серверов   $tcpconf")
+//
+//    val servers: Seq[ActorRef] = tcpconf.servers.map{
+//      confServer =>
+//        val serv = tcpBuilder.openServer(  confServer.port, confServer.id, confServer.phisicalObject, confServer.channelName )
+//        serv
+//    }
 
 //    val task: java.lang.Runnable = () => {
 //      servers.foreach( _ ! Message(s"Тест TCP\n") )
@@ -94,12 +94,7 @@ class ApplicationStartDebug @Inject()(lifecycle: ApplicationLifecycle, environme
 //    val scheduler: Scheduler = system.scheduler
 //    val dispatcher = system.dispatcher
 //    scheduler.scheduleWithFixedDelay(1 seconds, 5 seconds)(task)(dispatcher)
-
-  }
-
-
-
-
+//}
 
 
 

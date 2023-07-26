@@ -36,7 +36,7 @@ class TcpServer @Inject() (@Named("HostIp") address: String,
   private val phisicalOpt: Option[ActorRef] = manager.getPhisicalObjectByName(params.phisicalObject)
 
   phisicalOpt match {
-    case Some(ph) => ph ! PrintNameEvent
+    case Some(ph) => ph ! PrintNameEvent(s"TCP серверу ${params.id} на порту ${params.port} ")
     case None => log.error(s"Не найден физичяеский объект по имени ${params.phisicalObject}")
   }
 

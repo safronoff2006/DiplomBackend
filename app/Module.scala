@@ -9,6 +9,7 @@ import play.api.libs.concurrent.AkkaGuiceSupport
 import services.businesslogic.dispatchers.{RailWeighbridge, RailWeighbridgeBuilder, TruckScale, TruckScaleBuilder}
 import services.businesslogic.managers.PhisicalObjectsManager
 import services.start.{ApplicationStartDebug, InterfaceStart}
+import services.storage.TcpStorage
 
 import javax.inject.Named
 
@@ -38,6 +39,7 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
     bind(classOf[RailWeighbridgeBuilder]).asEagerSingleton()
     bind(classOf[PhisicalObjectsManager]).asEagerSingleton()
 
+    bind(classOf[TcpStorage]).asEagerSingleton()
     bind(classOf[InterfaceStart]).to(classOf[ApplicationStartDebug]).asEagerSingleton()
   }
 

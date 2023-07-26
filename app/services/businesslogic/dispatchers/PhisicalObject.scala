@@ -6,7 +6,7 @@ import akka.event.{Logging, LoggingAdapter}
 
 object PhisicalObject {
   case class NameEvent(name: String)
-  case object PrintNameEvent
+  case class PrintNameEvent(prefix:String)
   case class TcpMessageEvent(tcpId: String, phisicalObject: String, channelName: String, message: String)
 }
 

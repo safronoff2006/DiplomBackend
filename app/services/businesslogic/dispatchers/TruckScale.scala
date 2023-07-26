@@ -21,7 +21,7 @@ class TruckScale extends PhisicalObject with Actor  {
     case NameEvent(n: String) =>
       setName(n)
       log.info(s"Actor named $name")
-    case PrintNameEvent =>    log.info(s"Actor name $name")
+    case PrintNameEvent(prefix) =>    log.info(s"$prefix назначен диспетчер физических объектиов $name")
     case obj:TcpMessageEvent => log.info(obj.toString)
     case _ =>
   }
