@@ -6,6 +6,7 @@ import net.{TcpServer, TcpServerBuilder}
 import play.api.Logger
 import play.api.inject.Injector
 import play.api.libs.concurrent.AkkaGuiceSupport
+import services.businesslogic.channelparsers.{Parser, ParserAutoProtocol, ParserRailProtocol}
 import services.businesslogic.dispatchers.{RailWeighbridge, RailWeighbridgeBuilder, TruckScale, TruckScaleBuilder}
 import services.businesslogic.managers.PhisicalObjectsManager
 import services.start.{ApplicationStartDebug, InterfaceStart}
@@ -28,6 +29,10 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
       val hostip = ConfigFactory.load.getString("tcp-servers.host-ip")
       bind(classOf[String]).annotatedWith(Names.named("HostIp")).toInstance(hostip)
     } else  bind(classOf[String]).annotatedWith(Names.named("HostIp")).toInstance("0.0.0.0")
+
+    bind(classOf[Parser]).annotatedWith(Names.named("AutoParser")).to(classOf[ParserAutoProtocol])
+    bind(classOf[Parser]).annotatedWith(Names.named("RailParser")).to(classOf[ParserRailProtocol])
+
 
     bindActorFactory[TcpServer, TcpServer.BuildFactory]
 

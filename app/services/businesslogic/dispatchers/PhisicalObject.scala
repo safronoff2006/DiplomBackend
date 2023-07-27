@@ -2,6 +2,7 @@ package services.businesslogic.dispatchers
 
 import akka.actor.Actor
 import akka.event.{Logging, LoggingAdapter}
+import services.businesslogic.channelparsers.Parser
 
 
 object PhisicalObject {
@@ -11,7 +12,7 @@ object PhisicalObject {
 }
 
 
-abstract class PhisicalObject extends Actor {
+abstract class PhisicalObject(parser: Parser) extends Actor {
   protected val log: LoggingAdapter = Logging(context.system, this)
 
   def receive: Receive = ???

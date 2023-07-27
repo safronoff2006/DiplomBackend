@@ -2,8 +2,9 @@ package services.businesslogic.dispatchers
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import play.api.Logger
+import services.businesslogic.channelparsers.Parser
 
-import javax.inject.{Inject, Singleton}
+import javax.inject.{Inject, Named, Singleton}
 import services.businesslogic.dispatchers.PhisicalObject._
 
 object RailWeighbridge {
@@ -16,7 +17,9 @@ object RailWeighbridge {
   }
 }
 
-class RailWeighbridge extends PhisicalObject with Actor {
+class RailWeighbridge @Inject() (@Named("RailParser") parser: Parser) extends PhisicalObject(parser: Parser) with Actor {
+  log.info("Создан актор RailWeighbridge")
+  parser.setDispatcher(self)
 
   override def receive: Receive = {
     case NameEvent(n: String) =>
@@ -24,7 +27,9 @@ class RailWeighbridge extends PhisicalObject with Actor {
       log.info(s"Actor named $name")
 
     case PrintNameEvent(prefix) =>    log.info(s"$prefix назначен диспетчер физических объектиов $name")
-    case obj:TcpMessageEvent => log.info(obj.toString)
+    case obj:TcpMessageEvent =>
+      log.info(obj.toString)
+      parser.sendToParser(obj.message)
 
     case _ =>
   }
