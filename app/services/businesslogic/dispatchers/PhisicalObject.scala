@@ -3,6 +3,7 @@ package services.businesslogic.dispatchers
 import akka.actor.Actor
 import akka.event.{Logging, LoggingAdapter}
 import services.businesslogic.channelparsers.Parser
+import services.businesslogic.statemachines.StateMachine
 
 
 object PhisicalObject {
@@ -12,7 +13,7 @@ object PhisicalObject {
 }
 
 
-abstract class PhisicalObject(parser: Parser) extends Actor {
+abstract class PhisicalObject(parser: Parser, stateMashine: StateMachine) extends Actor {
   protected val log: LoggingAdapter = Logging(context.system, this)
 
   def receive: Receive = ???

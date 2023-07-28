@@ -9,6 +9,7 @@ import play.api.libs.concurrent.AkkaGuiceSupport
 import services.businesslogic.channelparsers.{Parser, ParserAutoProtocol, ParserRailProtocol}
 import services.businesslogic.dispatchers.{RailWeighbridge, RailWeighbridgeBuilder, TruckScale, TruckScaleBuilder}
 import services.businesslogic.managers.PhisicalObjectsManager
+import services.businesslogic.statemachines.{AutoStateMachine, RailStateMachine, StateMachine}
 import services.start.{ApplicationStartDebug, InterfaceStart}
 import services.storage.TcpStorage
 
@@ -32,6 +33,8 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
     bind(classOf[Parser]).annotatedWith(Names.named("AutoParser")).to(classOf[ParserAutoProtocol])
     bind(classOf[Parser]).annotatedWith(Names.named("RailParser")).to(classOf[ParserRailProtocol])
 
+    bind(classOf[StateMachine]).annotatedWith(Names.named("AutoStateMachine")).to(classOf[AutoStateMachine])
+    bind(classOf[StateMachine]).annotatedWith(Names.named("RailStateMachine")).to(classOf[RailStateMachine])
 
     bindActorFactory[TcpServer, TcpServer.BuildFactory]
 

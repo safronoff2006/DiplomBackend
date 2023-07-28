@@ -6,6 +6,7 @@ import services.businesslogic.channelparsers.Parser
 
 import javax.inject.{Inject, Named, Singleton}
 import services.businesslogic.dispatchers.PhisicalObject._
+import services.businesslogic.statemachines.StateMachine
 
 object RailWeighbridge {
   trait BuildFactory {
@@ -17,7 +18,10 @@ object RailWeighbridge {
   }
 }
 
-class RailWeighbridge @Inject() (@Named("RailParser") parser: Parser) extends PhisicalObject(parser: Parser) with Actor {
+class RailWeighbridge @Inject() (@Named("RailParser") parser: Parser,
+                                 @Named("RailStateMachine") stateMachine: StateMachine)
+
+  extends PhisicalObject(parser: Parser, stateMachine: StateMachine) with Actor {
   log.info("Создан актор RailWeighbridge")
   parser.setDispatcher(self)
 

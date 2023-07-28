@@ -6,6 +6,7 @@ import services.businesslogic.channelparsers.Parser
 
 import javax.inject.{Inject, Named, Singleton}
 import services.businesslogic.dispatchers.PhisicalObject._
+import services.businesslogic.statemachines.StateMachine
 
 object TruckScale {
   trait BuildFactory {
@@ -17,7 +18,10 @@ object TruckScale {
   }
 }
 
-class  TruckScale @Inject()(@Named("AutoParser") parser: Parser) extends PhisicalObject(parser:Parser) with Actor  {
+class  TruckScale @Inject()(@Named("AutoParser") parser: Parser,
+                            @Named("AutoStateMachine") stateMachine: StateMachine)
+
+  extends PhisicalObject(parser:Parser, stateMachine: StateMachine) with Actor  {
   log.info("Создан актор TruckScale")
   parser.setDispatcher(self)
 
