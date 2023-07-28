@@ -13,6 +13,7 @@ class PhisicalObjectsManager @Inject()(@Named("RailWeighbridge") rail: ActorRef,
                                        @Named("TruckScale") truck3: ActorRef) {
 
   private val logger: Logger = Logger(this.getClass)
+  logger.info("Загружен PhisicalObjectsManager")
 
   rail ! NameEvent("RailWeighbridge")
   truck1 ! NameEvent("TruckScale[1]")

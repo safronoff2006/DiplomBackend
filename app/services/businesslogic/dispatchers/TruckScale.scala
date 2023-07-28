@@ -24,8 +24,8 @@ class  TruckScale @Inject()(@Named("AutoParser") parser: Parser) extends Phisica
   override def receive: Receive = {
     case NameEvent(n: String) =>
       setName(n)
-      log.info(s"Actor named $name")
-    case PrintNameEvent(prefix) =>    log.info(s"$prefix назначен диспетчер физических объектиов $name")
+      log.info(s"Актор именован: $name")
+    case PrintNameEvent(prefix) =>    log.info(s"$prefix назначен диспетчер физических объектов $name")
     case obj:TcpMessageEvent =>
       log.info(obj.toString)
       parser.sendToParser(obj.message)
@@ -36,7 +36,7 @@ class  TruckScale @Inject()(@Named("AutoParser") parser: Parser) extends Phisica
 @Singleton
 class TruckScaleBuilder @Inject()(factory: TruckScale.BuildFactory)(implicit system: ActorSystem) {
   val logger: Logger = Logger(this.getClass)
-  logger.info("Load TruckScaleBuilder")
+  logger.info("Загружен TruckScaleBuilder")
 
   def createActor(): ActorRef = {
     val ref: ActorRef = TruckScale.createActor(factory(),java.util.UUID.randomUUID.toString )

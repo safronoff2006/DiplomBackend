@@ -20,15 +20,15 @@ trait InterfaceStart
 @Singleton
 class ApplicationStartDebug @Inject()(lifecycle: ApplicationLifecycle, environment: play.api.Environment, injector: Injector, config: Configuration,tcpBuilder: TcpServerBuilder, implicit val system: ActorSystem) extends InterfaceStart {
   val logger: Logger = Logger(this.getClass)
-  logger.info("DEBUG ApplicationStart")
+  logger.info("Отладочная реализация ApplicationStart")
   // хук шатдауна
   lifecycle.addStopHook { () =>
-    val mess = "Shutdown Oilserver"
+    val mess = "Остановка Oilserver"
     logger.info(mess)
     Future.successful(mess)
   }
 
-  logger.info("Start Oilserver")
+  logger.info("Старт Oilserver")
   logger.info("ОС " +
     sys.props.get("os.name").fold("Другая": String) { name =>
       name.toLowerCase(Locale.ENGLISH) match {
@@ -39,7 +39,7 @@ class ApplicationStartDebug @Inject()(lifecycle: ApplicationLifecycle, environme
       }
     }
   )
-  logger.info("Root path " + environment.rootPath.getPath)
+  logger.info("Корневой путь " + environment.rootPath.getPath)
 
   //
   private def loadJSONFromFilename(filename: String): Try[JsValue] = Try {
@@ -58,7 +58,7 @@ class ApplicationStartDebug @Inject()(lifecycle: ApplicationLifecycle, environme
 
   optJsServerConf match {
     case Success(i) =>
-      logger.info("Configuration")
+      logger.info("Конфигурация ")
       logger.info(Json.prettyPrint(i))
     case Failure(e) =>
       logger.error("Исключение при чтении или парсинге serverconf.json : " + e.toString)
@@ -69,8 +69,8 @@ class ApplicationStartDebug @Inject()(lifecycle: ApplicationLifecycle, environme
   //чтение основной конфигурации сервера
   if (config.has("serverconf")) {
     val serverconf: Serverconf = config.get[Serverconf]("serverconf")
-    logger.info(s"Name service: ${serverconf.servicename}")
-    logger.info(s"Version service: ${serverconf.version}")
+    logger.info(s"Имя сервиса: ${serverconf.servicename}")
+    logger.info(s"Версия сервиса: ${serverconf.version}")
 
 
   } else Play.stop(injector.instanceOf[Application])

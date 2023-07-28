@@ -11,7 +11,7 @@ import play.api.mvc._
 @Singleton
 class HomeController @Inject()(val controllerComponents: ControllerComponents) extends BaseController {
   private val logger: Logger = Logger(this.getClass)
-  logger.info("DEBUG HomeController")
+  logger.info("Создан HomeController")
 
   /**
    * Create an Action to render an HTML page.

@@ -10,11 +10,11 @@ import javax.inject.{Inject, Singleton}
 @Singleton
 class TcpStorage @Inject()(config: Configuration, tcpBuilder: TcpServerBuilder) {
   private val logger: Logger = Logger(this.getClass)
-  logger.info("Start TcpStorage")
+  logger.info("Загружен TcpStorage")
 
   private val tcpConfiguration:   Option[TcpConf] =  if (config.has("tcp-servers")) {
     val tcpconf: TcpConf = config.get[TcpConf]("tcp-servers")
-    logger.info(s"Конфигурация TCP серверов   $tcpconf")
+    logger.info(s"Конфигурация TCP серверов:   $tcpconf")
     Some(tcpconf)
   } else None
 

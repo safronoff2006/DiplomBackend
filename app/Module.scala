@@ -18,11 +18,10 @@ import javax.inject.Named
 
 class Module  extends AbstractModule  with AkkaGuiceSupport {
   private val logger: Logger = Logger(this.getClass)
-  logger.info("DEBUG Module")
+  logger.info("Загружен модуль IoC контейнера")
 
   override def configure(): Unit = {
-    logger.info("DEBUG Module configure")
-
+    logger.info("Выполняется конфигурация модуля Guice")
 
 
     if (ConfigFactory.load.hasPath("tcp-servers.host-ip")) {

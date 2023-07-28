@@ -32,7 +32,7 @@ class TcpServer @Inject() (@Named("HostIp") address: String,
 
   private val log = Logging(context.system, this)
 
-  log.info(s"Parameters TCP Server: $address  ${params.port}  ${params.id}  ${params.phisicalObject}  ${params.channelName}")
+  log.info(s"Параметры TCP Сервера: $address  ${params.port}  ${params.id}  ${params.phisicalObject}  ${params.channelName}")
   private val phisicalOpt: Option[ActorRef] = manager.getPhisicalObjectByName(params.phisicalObject)
 
   phisicalOpt match {
@@ -47,6 +47,7 @@ class TcpServer @Inject() (@Named("HostIp") address: String,
   def receive: Receive = {
 
     case b @ Bound(_) =>
+      log.info(s"TCP Сервер ${params.id} слушает порт ${params.port}")
       context.parent ! b
 
     case CommandFailed(_: Bind) => context.stop(self)
@@ -61,13 +62,13 @@ class TcpServer @Inject() (@Named("HostIp") address: String,
       connection ! Register(handler)
 
       setConnection(connection, local.getPort)
-      log.info(s"Connection open remote ${remote.getAddress}:${remote.getPort} to local ${local.getAddress}:${local.getPort}")
+      log.info(s"Соединение открыто:  удаленный сокет ${remote.getAddress}:${remote.getPort} на локальном сокете ${local.getAddress}:${local.getPort}")
 
       case ClearConnection => clearConnection()
 
       case Message(m)  => getConnection match {
         case Some(connection) => connection ! Write(ByteString(m))
-        case None => log.warning(s"Connection not exist. Can not send message $m")
+        case None => log.warning(s"Соединение не существует. Невозможно отправить сообщение $m")
       }
 
   }
@@ -75,18 +76,18 @@ class TcpServer @Inject() (@Named("HostIp") address: String,
   @tailrec
   private def clearConnection(): Unit = {
     val old: Option[ActorRef] = connection.get()
-    if (connection.compareAndSet(old, None)) log.info("Clear connection")
+    if (connection.compareAndSet(old, None)) log.info(s"Очищено соединение для порта ${params.port}")
     else clearConnection()
   }
 
-  private def getConnection = connection.get()
+  private def getConnection: Option[ActorRef] = connection.get()
 
 
 
   @tailrec
   private def setConnection(newConnection: ActorRef, port: Int): Unit = {
     val old: Option[ActorRef] = connection.get()
-    if (connection.compareAndSet(old,Some(newConnection))) log.info(s"Set connection $newConnection for port $port")
+    if (connection.compareAndSet(old,Some(newConnection))) log.info(s"Установлено  соединение $newConnection для порта $port")
     else setConnection(newConnection, port)
   }
 
@@ -106,7 +107,7 @@ class SimplisticHandler(manager:ActorRef,
   context.watch(connection)
 
   override def postStop(): Unit = {
-    log.info(s"Handler Stop for connection $connection")
+    log.info(s"Обработчик для соединения $connection  на порту ${local.getPort} остановлен")
   }
 
   def receive: Receive = {
@@ -123,7 +124,7 @@ class SimplisticHandler(manager:ActorRef,
       }
 
     case PeerClosed =>
-      log.info(s"Connection closed $connection")
+      log.info(s"Соединение $connection для порта ${local.getPort} закрыто")
       manager ! ClearConnection
       context.stop(self)
 
@@ -135,7 +136,7 @@ class SimplisticHandler(manager:ActorRef,
 @Singleton
 class TcpServerBuilder @Inject()(factory: TcpServer.BuildFactory)(implicit system: ActorSystem) extends InjectedActorSupport  {
   val logger: Logger = Logger(this.getClass)
-  logger.info("Load TcpServerBuilder")
+  logger.info("Загружен TcpServerBuilder")
 
   def openServer(port: Int, id:String, phisicalObject: String, channelName: String ):ActorRef = {
 

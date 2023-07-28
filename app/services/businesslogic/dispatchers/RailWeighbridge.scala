@@ -24,9 +24,9 @@ class RailWeighbridge @Inject() (@Named("RailParser") parser: Parser) extends Ph
   override def receive: Receive = {
     case NameEvent(n: String) =>
       setName(n)
-      log.info(s"Actor named $name")
+      log.info(s"Актор именован: $name")
 
-    case PrintNameEvent(prefix) =>    log.info(s"$prefix назначен диспетчер физических объектиов $name")
+    case PrintNameEvent(prefix) =>    log.info(s"$prefix назначен диспетчер физических объектов $name")
     case obj:TcpMessageEvent =>
       log.info(obj.toString)
       parser.sendToParser(obj.message)
@@ -38,7 +38,7 @@ class RailWeighbridge @Inject() (@Named("RailParser") parser: Parser) extends Ph
 @Singleton
 class RailWeighbridgeBuilder @Inject()(factory: RailWeighbridge.BuildFactory)(implicit system: ActorSystem) {
   val logger: Logger = Logger(this.getClass)
-  logger.info("Load RailWeighbridgeBuilder")
+  logger.info("Загружен RailWeighbridgeBuilder")
 
   def createActor(): ActorRef = {
     val ref: ActorRef = RailWeighbridge.createActor(factory(), java.util.UUID.randomUUID.toString )
