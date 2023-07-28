@@ -3,6 +3,7 @@ package services.businesslogic.dispatchers
 import akka.actor.Actor
 import akka.event.{Logging, LoggingAdapter}
 import services.businesslogic.channelparsers.Parser
+import services.businesslogic.channelparsers.Parser.PatternInfo
 import services.businesslogic.statemachines.StateMachine
 
 
@@ -10,10 +11,15 @@ object PhisicalObject {
   case class NameEvent(name: String)
   case class PrintNameEvent(prefix:String)
   case class TcpMessageEvent(tcpId: String, phisicalObject: String, channelName: String, message: String)
+
+
+
 }
 
 
-abstract class PhisicalObject(parser: Parser, stateMashine: StateMachine) extends Actor {
+abstract class PhisicalObject(parser: Parser,
+                              stateMachine: StateMachine,
+                              mainProtocolPattern: PatternInfo) extends Actor {
   protected val log: LoggingAdapter = Logging(context.system, this)
 
   def receive: Receive = ???
