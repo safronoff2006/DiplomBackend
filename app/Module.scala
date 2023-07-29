@@ -2,6 +2,7 @@ import akka.actor.ActorRef
 import com.google.inject.name.Names
 import com.google.inject.{AbstractModule, Provides}
 import com.typesafe.config.ConfigFactory
+import executioncontexts.CustomBlockingExecutionContext
 import models.configs.ProtocolsConf
 import net.{TcpServer, TcpServerBuilder}
 import play.api.Logger
@@ -25,6 +26,8 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
 
   override def configure(): Unit = {
     logger.info("Выполняется конфигурация модуля Guice")
+
+    bind(classOf[CustomBlockingExecutionContext]).asEagerSingleton()
 
 
     if (ConfigFactory.load.hasPath("tcp-servers.host-ip")) {
