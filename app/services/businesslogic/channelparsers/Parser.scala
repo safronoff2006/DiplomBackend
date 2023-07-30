@@ -8,7 +8,7 @@ import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue}
 import javax.inject.Inject
 
 object Parser {
-    type PatternInfo = (String, String)
+    type PatternInfo = (String, String, String, String)
 }
 
 abstract class Parser @Inject() (implicit ex: CustomBlockingExecutionContext) {
@@ -20,9 +20,7 @@ abstract class Parser @Inject() (implicit ex: CustomBlockingExecutionContext) {
 
   protected val accumulator: StringBuilder = new StringBuilder("")
 
-
-
-  protected var pattern: (String, String) = "" -> ""
+  protected var pattern: PatternInfo = ("","","","")
 
   private val queue:BlockingQueue[String] = new LinkedBlockingQueue[String]()
 

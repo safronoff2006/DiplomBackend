@@ -14,7 +14,9 @@ class ParserAutoProtocol @Inject()(implicit ex: CustomBlockingExecutionContext) 
   private var protocolPrefixes: List[Char] = List()
   private var protocolSuffixes: List[Char] = List()
 
-  private def parseProtocol2EmMarine(message: String): Unit = {
+  private var patternCard = ""
+
+  private def parseProtocol2(message: String): Unit = {
     message.foreach {
       ch =>
         state match {
@@ -40,33 +42,37 @@ class ParserAutoProtocol @Inject()(implicit ex: CustomBlockingExecutionContext) 
   override def setPattern(p: PatternInfo): Unit = {
     super.setPattern(p)
     protocolPrefixes = p._1 match {
-      case "SCALE_DATA_PATTERN_PROTOCOL2_EMMARIN" => List('v', 'V')
+      case "SCALE_DATA_PATTERN_PROTOCOL2" => List('v', 'V')
       case _ => List('<')
     }
 
     protocolSuffixes = p._1 match {
-      case "SCALE_DATA_PATTERN_PROTOCOL2_EMMARIN" => List('.')
+      case "SCALE_DATA_PATTERN_PROTOCOL2" => List('.')
       case _ => List('>')
     }
+
 
   }
 
   override protected def parse(message: String): Unit = {
-    logger.info(s"Парсинг сообщения  $message")
     pattern._1 match {
-      case "SCALE_DATA_PATTERN_PROTOCOL2_EMMARIN" => parseProtocol2EmMarine(message)
+      case "SCALE_DATA_PATTERN_PROTOCOL2" => parseProtocol2(message)
       case _ =>
     }
-
   }
 
-  private def parseUnit2EmMarine(unit: String): Unit = {
+  private def parseUnit2(unit: String): Unit = {
     val protocolPattern: Regex = pattern._2.r
     val correctUnit: Option[String] = Option(unit).filter(protocolPattern.matches)
 
     correctUnit match {
-      case Some(unit) => println(s"Корректная единица протокола:  $unit")
-      case None => println("Не корректная единица протокола")
+      case Some(unit) =>
+        println(s"Корректная единица протокола:  $unit")
+        val cardPattern: Regex = pattern._4.r
+        val existCard = cardPattern.matches(unit)
+         println(if (existCard) "Обнаружена карта" else "НЕ обнаружена карта")
+
+      case None => logger.error(s"Получена не корректная единица протокола: $unit")
     }
 
 
@@ -74,9 +80,8 @@ class ParserAutoProtocol @Inject()(implicit ex: CustomBlockingExecutionContext) 
 
 
   override protected def compleatParseUnit(unit: String): Unit = {
-    logger.info(s"Единица протокола: $unit")
     pattern._1 match {
-      case "SCALE_DATA_PATTERN_PROTOCOL2_EMMARIN" => parseUnit2EmMarine(unit)
+      case "SCALE_DATA_PATTERN_PROTOCOL2" => parseUnit2(unit)
       case _ =>
     }
   }

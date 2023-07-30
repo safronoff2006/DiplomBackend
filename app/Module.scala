@@ -27,14 +27,16 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
   override def configure(): Unit = {
     logger.info("Выполняется конфигурация модуля Guice")
 
+    //привязка пользовательского контекста исполнения для блокирующих и длительных операций
     bind(classOf[CustomBlockingExecutionContext]).asEagerSingleton()
 
-
+    //привязка host-ip из конфигурации TCP серверов
     if (ConfigFactory.load.hasPath("tcp-servers.host-ip")) {
       val hostip = ConfigFactory.load.getString("tcp-servers.host-ip")
       bind(classOf[String]).annotatedWith(Names.named("HostIp")).toInstance(hostip)
     } else  bind(classOf[String]).annotatedWith(Names.named("HostIp")).toInstance("0.0.0.0")
 
+    //приявязка паттернов
     bind(classOf[String]).annotatedWith(Names.named("AutoMainPattern")).toInstance(
       if (ConfigFactory.load.hasPath("protocols.AutoMain")) {
         ProtocolsConf.getProtocolByName(ConfigFactory.load.getString("protocols.AutoMain"))
@@ -60,8 +62,20 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
       } else ""
     )
 
+    bind(classOf[String]).annotatedWith(Names.named("CardPatternName")).toInstance(
+      if (ConfigFactory.load.hasPath("card")) {
+        ConfigFactory.load.getString("card")
+      } else ""
+    )
+
+    bind(classOf[String]).annotatedWith(Names.named("CardPattern")).toInstance(
+      if (ConfigFactory.load.hasPath("card")) {
+        ProtocolsConf.getProtocolByName(ConfigFactory.load.getString("card"))
+      } else ""
+    )
 
 
+    //привязка сервисов
     bind(classOf[Parser]).annotatedWith(Names.named("AutoParser")).to(classOf[ParserAutoProtocol])
 
     bind(classOf[Parser]).annotatedWith(Names.named("RailParser")).to(classOf[ParserRailProtocol])
@@ -83,6 +97,7 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
     bind(classOf[InterfaceStart]).to(classOf[ApplicationStartDebug]).asEagerSingleton()
   }
 
+  //провайдеры акторов диспетчеров для ЖД и автомобильных весов
   @Provides
   @Named("RailWeighbridge")
   def getRailWeighbridgeActor(injector: Injector): ActorRef = {
@@ -97,16 +112,21 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
     builder.createActor()
   }
 
+  //провайдеры кортежей паттернов для парсеров протоколов
   @Provides
   @Named("AutoMainPatternInfo")
-  def getAutoPatternInfo(@Named("AutoMainPatternName") name:String,
-                         @Named("AutoMainPattern") pattern: String): PatternInfo = (name, pattern)
+  def getAutoPatternInfo(@Named("AutoMainPatternName") nameMainPattern:String,
+                         @Named("AutoMainPattern") mainPattern: String,
+                         @Named("CardPatternName") nameCardPattern: String,
+                         @Named("CardPattern") cardPattern: String): PatternInfo =
+    (nameMainPattern, mainPattern, nameCardPattern, cardPattern)
 
 
   @Provides
   @Named("RailsPatternInfo")
-  def getRailPatternInfo(@Named("RailsMainPatternName") name: String,
-                         @Named("RailsMainPattern") pattern: String): PatternInfo = (name, pattern)
+  def getRailPatternInfo(@Named("RailsMainPatternName") nameMainPattern: String,
+                         @Named("RailsMainPattern") mainPattern: String): PatternInfo =
+    (nameMainPattern, mainPattern, "", "")
 
 
 
