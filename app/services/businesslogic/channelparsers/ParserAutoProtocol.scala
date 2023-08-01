@@ -1,11 +1,12 @@
 package services.businesslogic.channelparsers
 
 import executioncontexts.CustomBlockingExecutionContext
+import models.extractors.Protocol2WithCard.WithCard
+import models.extractors.{NoCardOrWithCard, Protocol2NoCard, Protocol2WithCard}
 import play.api.Logger
 import services.businesslogic.channelparsers.Parser.PatternInfo
 
 import javax.inject.Inject
-import scala.util.matching.Regex
 
 class ParserAutoProtocol @Inject()(implicit ex: CustomBlockingExecutionContext) extends Parser() {
   val logger: Logger = Logger(this.getClass)
@@ -32,7 +33,7 @@ class ParserAutoProtocol @Inject()(implicit ex: CustomBlockingExecutionContext) 
 
             if (unitCount >= maxUnitLength) clearState()
             else if (protocolSuffixes.contains(ch)) {
-                compleatParseUnit(accumulator.toString)
+                compleatParse2Unit(accumulator.toString)
                 clearState()
             }
         }
@@ -61,28 +62,24 @@ class ParserAutoProtocol @Inject()(implicit ex: CustomBlockingExecutionContext) 
     }
   }
 
-  private def parseUnit2(unit: String): Unit = {
-    val protocolPattern: Regex = pattern._2.r
-    val correctUnit: Option[String] = Option(unit).filter(protocolPattern.matches)
-
-    correctUnit match {
-      case Some(unit) =>
-        println(s"Корректная единица протокола:  $unit")
-        val cardPattern: Regex = pattern._4.r
-        val existCard = cardPattern.matches(unit)
-         println(if (existCard) "Обнаружена карта" else "НЕ обнаружена карта")
-
-      case None => logger.error(s"Получена не корректная единица протокола: $unit")
+  private def sendProtocolObjectToDispatcher(protocolObj: NoCardOrWithCard): Unit = {
+    getDispatcher match {
+      case Some(dispatcherRef) => dispatcherRef ! protocolObj
+      case None => logger.error("Не заполнен диспетчер физического объекта")
     }
-
-
   }
 
 
-  override protected def compleatParseUnit(unit: String): Unit = {
-    pattern._1 match {
-      case "SCALE_DATA_PATTERN_PROTOCOL2" => parseUnit2(unit)
-      case _ =>
-    }
+  private def compleatParse2Unit(unit: String): Unit = {
+       unit match {
+         case Protocol2NoCard(protocolObj) => sendProtocolObjectToDispatcher(protocolObj)
+         case Protocol2WithCard(protocolObj) =>
+           protocolObj match {
+             case WithCard(_, _, _, _, _, "M") => sendProtocolObjectToDispatcher(protocolObj)
+             case WithCard(_, _, _, _, _, "Q") => logger.warn(s"Поступил не поддерживаемый системой QR-код: $protocolObj")
+             case _ =>
+           }
+         case _ => logger.error(s"Единица протокола $unit не соответствует ни какому протоколу")
+       }
   }
 }

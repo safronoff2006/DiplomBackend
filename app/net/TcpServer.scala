@@ -113,7 +113,7 @@ class SimplisticHandler(manager:ActorRef,
   def receive: Receive = {
     case Received(data) =>
       val strEcho = data.utf8String.trim + "!!!\n"
-      sender() ! Write(ByteString(strEcho))
+      sender() ! Write(ByteString(strEcho)) //Эхо
 
       val strData = data.utf8String.trim
 

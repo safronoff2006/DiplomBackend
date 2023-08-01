@@ -11,12 +11,7 @@ object PhisicalObject {
   case class NameEvent(name: String)
   case class PrintNameEvent(prefix:String)
   case class TcpMessageEvent(tcpId: String, phisicalObject: String, channelName: String, message: String)
-
-
-
 }
-
-
 abstract class PhisicalObject(parser: Parser,
                               stateMachine: StateMachine,
                               mainProtocolPattern: PatternInfo) extends Actor {

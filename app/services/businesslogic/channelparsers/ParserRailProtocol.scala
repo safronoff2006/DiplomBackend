@@ -18,7 +18,5 @@ class ParserRailProtocol @Inject() (implicit ex:CustomBlockingExecutionContext) 
     }
   }
 
-  override protected def compleatParseUnit(unit: String): Unit = {
 
-  }
 }

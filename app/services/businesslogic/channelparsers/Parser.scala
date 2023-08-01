@@ -34,7 +34,7 @@ abstract class Parser @Inject() (implicit ex: CustomBlockingExecutionContext) {
 
   def getDispatcher: Option[ActorRef] = dispatcher
 
-  protected val maxUnitLength = 50
+  protected val maxUnitLength = 100
 
   protected var unitCount: Int = 0
 
@@ -45,7 +45,7 @@ abstract class Parser @Inject() (implicit ex: CustomBlockingExecutionContext) {
   }
 
   protected def parse(message:String): Unit
-  protected def compleatParseUnit(unit: String): Unit
+
 
   ex.execute(() => {
     while (!Thread.interrupted()) {

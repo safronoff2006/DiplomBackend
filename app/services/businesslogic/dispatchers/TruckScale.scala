@@ -1,6 +1,8 @@
 package services.businesslogic.dispatchers
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import models.extractors.Protocol2NoCard.NoCard
+import models.extractors.Protocol2WithCard.WithCard
 import play.api.Logger
 import services.businesslogic.channelparsers.Parser
 import services.businesslogic.channelparsers.Parser.PatternInfo
@@ -33,10 +35,13 @@ class  TruckScale @Inject()(@Named("AutoParser") parser: Parser,
     case NameEvent(n: String) =>
       setName(n)
       log.info(s"Актор именован: $name")
+      stateMachine.name = n
     case PrintNameEvent(prefix) =>    log.info(s"$prefix назначен диспетчер физических объектов $name")
     case obj:TcpMessageEvent =>
-      log.info(obj.toString)
+      //log.info(obj.toString)
       parser.sendToParser(obj.message)
+    case obj:NoCard => stateMachine.protocolMessage(obj)
+    case obj:WithCard => stateMachine.protocolMessage(obj)
     case _ =>
   }
 }
