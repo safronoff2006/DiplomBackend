@@ -2,7 +2,7 @@ package services.storage
 
 import akka.actor.ActorRef
 import models.configs.{Server, TcpConf}
-import net.TcpServerBuilder
+import net.tcp.TcpServerBuilder
 import play.api.{Configuration, Logger}
 
 import javax.inject.{Inject, Singleton}

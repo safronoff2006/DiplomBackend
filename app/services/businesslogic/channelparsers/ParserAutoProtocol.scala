@@ -76,7 +76,8 @@ class ParserAutoProtocol @Inject()(implicit ex: CustomBlockingExecutionContext) 
          case Protocol2WithCard(protocolObj) =>
            protocolObj match {
              case WithCard(_, _, _, _, _, "M") => sendProtocolObjectToDispatcher(protocolObj)
-             case WithCard(_, _, _, _, _, "Q") => logger.warn(s"Поступил не поддерживаемый системой QR-код: $protocolObj")
+             case WithCard(_, _, _, _, _, "Q") =>
+               logger.warn(s"Поступил не поддерживаемый системой QR-код: $protocolObj")
              case _ =>
            }
          case _ => logger.error(s"Единица протокола $unit не соответствует ни какому протоколу")

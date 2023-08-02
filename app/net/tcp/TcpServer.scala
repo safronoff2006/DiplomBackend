@@ -1,12 +1,11 @@
-package  net
-
+package net.tcp
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.event.Logging
 import akka.io.{IO, Tcp}
 import akka.util.ByteString
 import com.google.inject.assistedinject.Assisted
-import net.TcpServer.createActor
+import net.tcp.TcpServer.createActor
 import play.api.Logger
 import play.api.libs.concurrent.InjectedActorSupport
 import services.businesslogic.dispatchers.PhisicalObject._
@@ -112,7 +111,7 @@ class SimplisticHandler(manager:ActorRef,
 
   def receive: Receive = {
     case Received(data) =>
-      val strEcho = data.utf8String.trim + "!!!\n"
+      val strEcho = "Эхо:    "+ data.utf8String.trim + "\n"
       sender() ! Write(ByteString(strEcho)) //Эхо
 
       val strData = data.utf8String.trim

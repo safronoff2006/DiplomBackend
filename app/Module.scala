@@ -4,7 +4,9 @@ import com.google.inject.{AbstractModule, Provides}
 import com.typesafe.config.ConfigFactory
 import executioncontexts.CustomBlockingExecutionContext
 import models.configs.ProtocolsConf
-import net.{TcpServer, TcpServerBuilder}
+import net.NetWorker
+import net.tcp.{TcpServer, TcpServerBuilder}
+import net.udp.UdpServerManager
 import play.api.Logger
 import play.api.inject.Injector
 import play.api.libs.concurrent.AkkaGuiceSupport
@@ -94,6 +96,9 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
     bind(classOf[PhisicalObjectsManager]).asEagerSingleton()
 
     bind(classOf[TcpStorage]).asEagerSingleton()
+
+    bind(classOf[NetWorker]).asEagerSingleton()
+    bind(classOf[UdpServerManager]).asEagerSingleton()
     bind(classOf[InterfaceStart]).to(classOf[ApplicationStartDebug]).asEagerSingleton()
   }
 
