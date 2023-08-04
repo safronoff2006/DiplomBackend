@@ -7,21 +7,25 @@ import models.extractors.Protocol2NoCard.NoCard
 import models.extractors.Protocol2WithCard.WithCard
 import play.api.Logger
 import services.businesslogic.statemachines.AutoStateMachine.{Perimeters, StateAutoPlatform}
+import services.businesslogic.statemachines.StateMachine.StatePlatform
+import services.storage.StateMachinesStorage
 import utils.AtomicOption
 
 import javax.inject.Inject
 
 object AutoStateMachine {
   case class Perimeters(in:Char, out: Char, left: Char, right: Char)
-  case class StateAutoPlatform(perimeters: Perimeters, weight: Int)
+  case class StateAutoPlatform(perimeters: Perimeters, weight: Int)  extends StatePlatform
 }
 
-class AutoStateMachine  @Inject() ( @Named("CardPatternName") nameCardPattern: String)
+class AutoStateMachine  @Inject() ( @Named("CardPatternName") nameCardPattern: String,
+                                    stateStorage: StateMachinesStorage)
                                   (implicit ex: CustomBlockingExecutionContext) extends StateMachine() {
   val logger: Logger = Logger(this.getClass)
   logger.info("Создана стейт машина AutoStateMachine")
   logger.info(s"Паттерн карт: $nameCardPattern")
 
+  override def register(name: String): Unit = stateStorage.add(name, this)
 
   private val state: AtomicOption[StateAutoPlatform] = new AtomicOption(None)
 
@@ -56,4 +60,5 @@ class AutoStateMachine  @Inject() ( @Named("CardPatternName") nameCardPattern: S
 
   }
 
+  override def getState: Option[StatePlatform] = state.getState
 }

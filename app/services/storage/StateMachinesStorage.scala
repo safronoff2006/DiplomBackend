@@ -6,6 +6,7 @@ import services.storage.StateMachinesStorage.StateMachineAddException
 
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Singleton
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 object StateMachinesStorage {
   protected class StateMachineAddException(s: String) extends Exception(s)
@@ -26,6 +27,8 @@ class StateMachinesStorage {
   }
 
   def get(name: String): Option[StateMachine] = if (storage.containsKey(name)) Some(storage.get(name)) else None
+
+  def getList: List[(String,StateMachine)] = storage.entrySet().asScala.map(x => x.getKey -> x.getValue).toList
 
 
 
