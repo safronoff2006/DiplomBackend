@@ -9,7 +9,7 @@ import scala.util.matching.Regex
 trait Protocol {
   val logger: Logger = Logger(this.getClass)
   protected val patternPrefix: Regex = "[vV]".r
-  protected val patternPerimeters: Regex = "[-+?]{4}".r
+  val patternPerimeters: Regex = "[-+?]{4}".r
   protected val patternWeight: Regex = ("(\\?{6}|\\s{6}" +
     "|\\s{5}[0-9]{1}|\\s{4}-[0-9]{1}|\\s{4}[0-9]{2}|" +
     "\\s{3}-[0-9]{2}|\\s{3}[0-9]{3}|\\s{2}-[0-9]{3}|\\s{2}[0-9]{4}|\\s{1}-[0-9]{4}|" +

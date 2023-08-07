@@ -1,23 +1,30 @@
 package services.start
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorRef, ActorSystem, Scheduler}
+import akka.io.Tcp
+import akka.util.ByteString
 import models.configs.Serverconf
-import net.tcp.TcpServerBuilder
+import net.tcp.{TcpClient, TcpClientOwner, TcpServerBuilder}
 import play.api.inject.{ApplicationLifecycle, Injector}
 import play.api.libs.json.{JsValue, Json}
 import play.api.{Application, Configuration, Logger, Play}
 
+import java.net.InetSocketAddress
 import java.util.Locale
 import javax.inject._
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.concurrent.duration.DurationInt
 import scala.io.Source
 import scala.language.postfixOps
 import scala.util.{Failure, Success, Try, Using}
 
-trait InterfaceStart
+trait InterfaceStart {
+  def udpDebugCommand(command: String): Unit
+  def helloFromService(service:String):Unit
+}
 
 @Singleton
-class ApplicationStartDebug @Inject()(lifecycle: ApplicationLifecycle, environment: play.api.Environment, injector: Injector, config: Configuration,tcpBuilder: TcpServerBuilder, implicit val system: ActorSystem) extends InterfaceStart {
+class ApplicationStartDebug @Inject()(lifecycle: ApplicationLifecycle, environment: play.api.Environment, injector: Injector, config: Configuration,tcpBuilder: TcpServerBuilder, implicit val system: ActorSystem) extends InterfaceStart with TcpClientOwner {
   val logger: Logger = Logger(this.getClass)
   logger.info("Отладочная реализация ApplicationStart")
   // хук шатдауна
@@ -95,7 +102,43 @@ class ApplicationStartDebug @Inject()(lifecycle: ApplicationLifecycle, environme
 //    scheduler.scheduleWithFixedDelay(1 seconds, 5 seconds)(task)(dispatcher)
 //}
 
+  override def udpDebugCommand(command: String): Unit = {
 
+  }
+
+  override def helloFromService(service: String): Unit = {
+    logger.info(s"Привет из сервиса $service")
+  }
+
+  override def connected(c: Tcp.Connected): Unit = {
+    println(s"Соединение к ${c.remoteAddress.getAddress}:${c.remoteAddress.getPort}")
+  }
+
+  override def message(s: String): Unit = {
+    println(s)
+  }
+
+  override def data(d: ByteString, s: String): Unit = {
+        println(s + " " + d.utf8String)
+  }
+
+  private var client:ActorRef = _
+  private val taskClient: java.lang.Runnable = () => {
+    val remoteSocket = new InetSocketAddress("127.0.0.1", 8877)
+    client  = system.actorOf(TcpClient.props(remoteSocket, this), "client1")
+  }
+
+  private val  taskSend: java.lang.Runnable = () => {
+    client  ! ByteString("v++++  4000%0000.")
+  }
+
+
+
+  private val  scheduler: Scheduler = system.scheduler
+  implicit val disp: ExecutionContextExecutor = system.dispatcher
+  scheduler.scheduleOnce(10 seconds, taskClient)
+
+  scheduler.scheduleWithFixedDelay(13 seconds, 10 milliseconds )(taskSend)
 
 }
 
