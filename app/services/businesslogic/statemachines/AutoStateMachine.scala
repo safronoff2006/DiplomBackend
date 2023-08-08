@@ -6,19 +6,20 @@ import models.extractors.NoCardOrWithCard
 import models.extractors.Protocol2NoCard.{NoCard, patternPerimeters}
 import models.extractors.Protocol2WithCard.WithCard
 import play.api.Logger
-
 import services.businesslogic.statemachines.AutoStateMachine.{Perimeters, StateAutoPlatform}
 import services.businesslogic.statemachines.StateMachine.StatePlatform
 import services.storage.StateMachinesStorage
 import utils.AtomicOption
 
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 object AutoStateMachine {
   case class Perimeters(in: Char, out: Char, left: Char, right: Char)
   case class StateAutoPlatform(perimeters: Perimeters, weight: Int) extends StatePlatform
   object StateAutoPlatform {
-    class ParsePerimetersException(s: String) extends Exception(s)
+    private class ParsePerimetersException(s: String) extends Exception(s)
     def apply(perimeters: String, weight: Int): StateAutoPlatform = {
       if (!patternPerimeters.matches(perimeters))
         throw new ParsePerimetersException(s"Не верный формат периметров: $perimeters")
@@ -46,6 +47,7 @@ class AutoStateMachine @Inject()(@Named("CardPatternName") nameCardPattern: Stri
 
   }
 
+  private val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss SSS")
 
   override def protocolExecute(message: NoCardOrWithCard): Unit = {
     val stateData: (String, String) = message match {
@@ -67,8 +69,8 @@ class AutoStateMachine @Inject()(@Named("CardPatternName") nameCardPattern: Stri
     val newState = StateAutoPlatform(perimeters, stateData._2.replace('?', '0').replace(' ', '0').toInt)
 
     state.setState(Some(newState))
-
-    println(newState)
+    //val d = LocalDateTime.now
+    //logger.info(s"$newState  ${formatter.format(d)}")
 
   }
 

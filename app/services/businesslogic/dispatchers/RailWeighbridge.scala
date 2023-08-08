@@ -25,14 +25,14 @@ class RailWeighbridge @Inject() (@Named("RailParser") parser: Parser,
 
   extends PhisicalObject(parser: Parser, stateMachine: StateMachine, mainProtocolPattern: PatternInfo) with Actor {
 
-  log.info("Создан актор RailWeighbridge")
+  log.info("Создан диспетчер RailWeighbridge")
   parser.setDispatcher(self)
   parser.setPattern(mainProtocolPattern)
 
   override def receive: Receive = {
     case NameEvent(n: String) =>
       setName(n)
-      log.info(s"Актор именован: $name")
+      log.info(s"Диспетчер именован: $name")
 
     case PrintNameEvent(prefix) =>    log.info(s"$prefix назначен диспетчер физических объектов $name")
     case obj:TcpMessageEvent =>

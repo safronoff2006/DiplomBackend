@@ -27,14 +27,14 @@ class  TruckScale @Inject()(@Named("AutoParser") parser: Parser,
 
   extends PhisicalObject(parser:Parser, stateMachine: StateMachine, mainProtocolPattern: PatternInfo) with Actor  {
 
-  log.info("Создан актор TruckScale")
+  log.info("Создан диспетчер TruckScale")
   parser.setDispatcher(self)
   parser.setPattern(mainProtocolPattern)
 
   override def receive: Receive = {
     case NameEvent(n: String) =>
       setName(n)
-      log.info(s"Актор именован: $name")
+      log.info(s"Диспетчер именован: $name")
       stateMachine.name = n
     case PrintNameEvent(prefix) =>    log.info(s"$prefix назначен диспетчер физических объектов $name")
     case obj:TcpMessageEvent =>

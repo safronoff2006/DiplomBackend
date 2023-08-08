@@ -1,0 +1,1 @@
+echo '{"command":"setdata", "id":"Второй" }' > /dev/udp/127.0.0.1/9010

@@ -34,20 +34,19 @@ class TcpStorage @Inject()(config: Configuration, tcpBuilder: TcpServerBuilder) 
   def getTcpConfiguration: Option[TcpConf] = tcpConfiguration
   def getTcpServers: Option[Seq[(String,ActorRef)]] = tcpServers
 
-  private def getHostIp: Option[String] = tcpConfiguration match {
+  def getHostIp: Option[String] = tcpConfiguration match {
     case None => None
     case Some(tcpconf) => Some(tcpconf.hostip)
   }
 
-
-  private def getServerConfigById(id: String):Option[Server] = {
+  def getServerConfigById(id: String):Option[Server] = {
     tcpConfiguration match {
       case None => None
       case Some(tcpconf) => tcpconf.servers.find(_.id == id)
     }
   }
 
-  private def getServerById(id:String): Option[ActorRef]= tcpServers match {
+  def getServerById(id:String): Option[ActorRef]= tcpServers match {
     case None => None
     case Some(servers) => servers.find(_._1 == id).map(_._2)
   }

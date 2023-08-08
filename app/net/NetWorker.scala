@@ -19,7 +19,7 @@ class NetWorker @Inject()(start: InterfaceStart)(implicit excontext: CustomBlock
   def udpWork(data: ByteString, remote: InetSocketAddress): Unit = {
     Future {
       val msg = data.decodeString("utf-8").replaceAll("\n", " ")
-      logger.info(s"${remote.getHostString}:${remote.getPort} says: $msg")
+      logger.info(s"${remote.getHostString}:${remote.getPort} прислал: $msg")
       start.udpDebugCommand(msg)
     }
   }
