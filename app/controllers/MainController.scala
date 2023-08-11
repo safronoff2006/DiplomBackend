@@ -3,8 +3,9 @@ package controllers
 
 import executioncontexts.CustomBlockingExecutionContext
 import play.api._
-import play.api.libs.json.{JsArray, JsValue, Json}
+import play.api.libs.json.{JsArray, JsString, JsValue, Json}
 import play.api.mvc._
+import services.businesslogic.managers.PhisicalObjectsManager
 import services.businesslogic.statemachines.AutoStateMachine.StateAutoPlatform
 import services.businesslogic.statemachines.StateMachine
 import services.storage.StateMachinesStorage
@@ -17,7 +18,7 @@ import scala.concurrent.Future
  * application's home page.
  */
 @Singleton
-class MainController @Inject()(val cc: ControllerComponents, stateStorage: StateMachinesStorage) (implicit ex: CustomBlockingExecutionContext )  extends AbstractController(cc) {
+class MainController @Inject()(val cc: ControllerComponents, stateStorage: StateMachinesStorage, phisManager: PhisicalObjectsManager)(implicit ex: CustomBlockingExecutionContext )  extends AbstractController(cc) {
   private val logger: Logger = Logger(this.getClass)
   logger.info("Создан MainController")
 
@@ -90,5 +91,10 @@ class MainController @Inject()(val cc: ControllerComponents, stateStorage: State
     request: Request[AnyContent] => Future {
       jsonStatesOfListStates(stateStorage.getList.filter(x => name.contains(x._1)))
     }
+  }
+
+  def getValidNames: Action[AnyContent] = Action { request: Request[AnyContent] =>
+    val names = phisManager.getValidNames().map(JsString(_))
+    Ok(JsArray(names))
   }
 }

@@ -31,4 +31,6 @@ class PhisicalObjectsManager @Inject()(@Named("RailWeighbridge") rail: ActorRef,
     }
   }
 
+  def getValidNames(): List[String] = List("RailWeighbridge","TruckScale[1]", "TruckScale[2]", "TruckScale[3]")
+
 }
