@@ -11,3 +11,4 @@ GET     /assets/*file               controllers.Assets.versioned(path="/public",
 
 GET     /getAllStates               controllers.MainController.getAllStates
 GET     /getState                   controllers.MainController.getState(name:String)
+GET     /getListStates              controllers.MainController.getListStates(name: List[String])

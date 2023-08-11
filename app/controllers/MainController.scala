@@ -3,8 +3,8 @@ package controllers
 
 import executioncontexts.CustomBlockingExecutionContext
 import play.api._
-import play.api.libs.json.{JsObject, JsValue, Json}
-import play.api.mvc.{AbstractController, _}
+import play.api.libs.json.{JsArray, JsValue, Json}
+import play.api.mvc._
 import services.businesslogic.statemachines.AutoStateMachine.StateAutoPlatform
 import services.businesslogic.statemachines.StateMachine
 import services.storage.StateMachinesStorage
@@ -21,42 +21,41 @@ class MainController @Inject()(val cc: ControllerComponents, stateStorage: State
   private val logger: Logger = Logger(this.getClass)
   logger.info("Создан MainController")
 
-  def getAllStates: Action[AnyContent] = Action.async {
-    request: Request[AnyContent] => {
-      Future {
-        val listStates: List[(String, StateMachine)] = stateStorage.getList
-        val isres: IndexedSeq[JsObject] = listStates.map(smPair => smPair._1 -> smPair._2.getState).map {
-          x =>
-            val state = x._2 match {
-              case None =>
-                val name = x._1
-                Json.obj("none" -> s"Не установлено состояние стейт-машины $name")
-              case Some(st) => st match {
-                case StateAutoPlatform(perimeters, weight) => Json.obj(
-                  "type" -> "auto",
-                  "weight" -> weight,
-                  "perimeters" -> Json.obj(
-                    "in" -> perimeters.in.toString,
-                    "out" -> perimeters.out.toString,
-                    "left" -> perimeters.left.toString,
-                    "right" -> perimeters.right.toString
-                  )
-                )
-                case _ => Json.obj("presentation" -> st.toString)
-              }
-            }
-
-            Json.obj(
-              "name" -> x._1,
-              "state" -> state
+  private def jsonStatesOfListStates(listStates: List[(String, StateMachine)]): Result = {
+    val isres: Seq[JsValue]= listStates.map(smPair => smPair._1 -> smPair._2.getState).map {
+      x =>
+        val state = x._2 match {
+          case None =>
+            val name = x._1
+            Json.obj("none" -> s"Не установлено состояние стейт-машины $name")
+          case Some(st) => st match {
+            case StateAutoPlatform(perimeters, weight) => Json.obj(
+              "type" -> "auto",
+              "weight" -> weight,
+              "perimeters" -> Json.obj(
+                "in" -> perimeters.in.toString,
+                "out" -> perimeters.out.toString,
+                "left" -> perimeters.left.toString,
+                "right" -> perimeters.right.toString
+              )
             )
+            case _ => Json.obj("presentation" -> st.toString)
+          }
+        }
 
-        }.toIndexedSeq
+        Json.obj(
+          "name" -> x._1,
+          "state" -> state
+        )
 
-        val res: JsValue = Json.obj("states" -> Json.arr(isres))
-        Ok(res)
-      }
     }
+
+    val res = Json.obj("states" -> JsArray(isres))
+    Ok(res)
+  }
+
+  def getAllStates: Action[AnyContent] = Action.async {
+    request: Request[AnyContent] => Future (jsonStatesOfListStates(stateStorage.getList))
   }
 
   def getState(name: String): Action[AnyContent] = Action.async {
@@ -87,4 +86,9 @@ class MainController @Inject()(val cc: ControllerComponents, stateStorage: State
     }
   }
 
+  def getListStates(name: List[String]): Action[AnyContent] = Action.async {
+    request: Request[AnyContent] => Future {
+      jsonStatesOfListStates(stateStorage.getList.filter(x => name.contains(x._1)))
+    }
+  }
 }
