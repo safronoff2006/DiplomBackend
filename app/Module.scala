@@ -16,7 +16,7 @@ import services.businesslogic.dispatchers.{RailWeighbridge, RailWeighbridgeBuild
 import services.businesslogic.managers.PhisicalObjectsManager
 import services.businesslogic.statemachines.{AutoStateMachine, RailStateMachine, StateMachine}
 import services.start.{ApplicationStartDebug, InterfaceStart}
-import services.storage.{StateMachinesStorage, TcpStorage}
+import services.storage.{GlobalStorage, StateMachinesStorage, TcpStorage}
 
 import javax.inject.Named
 
@@ -78,6 +78,7 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
 
 
     //привязка сервисов
+    bind(classOf[GlobalStorage]).asEagerSingleton()
     bind(classOf[StateMachinesStorage]).asEagerSingleton()
 
     bind(classOf[Parser]).annotatedWith(Names.named("AutoParser")).to(classOf[ParserAutoProtocol])

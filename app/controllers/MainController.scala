@@ -8,7 +8,7 @@ import play.api.mvc._
 import services.businesslogic.managers.PhisicalObjectsManager
 import services.businesslogic.statemachines.AutoStateMachine.StateAutoPlatform
 import services.businesslogic.statemachines.StateMachine
-import services.storage.StateMachinesStorage
+import services.storage.{GlobalStorage, StateMachinesStorage}
 
 import javax.inject._
 import scala.concurrent.Future
@@ -18,17 +18,26 @@ import scala.concurrent.Future
  * application's home page.
  */
 @Singleton
-class MainController @Inject()(val cc: ControllerComponents, stateStorage: StateMachinesStorage, phisManager: PhisicalObjectsManager)(implicit ex: CustomBlockingExecutionContext )  extends AbstractController(cc) {
+class MainController @Inject()(val cc: ControllerComponents, stateStorage: StateMachinesStorage,
+                               phisManager: PhisicalObjectsManager, globalStor: GlobalStorage)
+                              (implicit ex: CustomBlockingExecutionContext )  extends AbstractController(cc) {
+
   private val logger: Logger = Logger(this.getClass)
   logger.info("Создан MainController")
 
+
+
+
   private def jsonStatesOfListStates(listStates: List[(String, StateMachine)]): Result = {
-    val isres: Seq[JsValue]= listStates.map(smPair => smPair._1 -> smPair._2.getState).map {
+    val isres: Seq[JsValue]= listStates.map(smPair => (smPair._1, smPair._2.getState, smPair._2.idnx)).map {
       x =>
+        val indx = x._3
         val state = x._2 match {
           case None =>
             val name = x._1
-            Json.obj("none" -> s"Не установлено состояние стейт-машины $name")
+            Json.obj(
+              "none" -> s"Не установлено состояние стейт-машины $name"
+            )
           case Some(st) => st match {
             case StateAutoPlatform(perimeters, weight) => Json.obj(
               "type" -> "auto",
@@ -46,6 +55,8 @@ class MainController @Inject()(val cc: ControllerComponents, stateStorage: State
 
         Json.obj(
           "name" -> x._1,
+          "indx" -> indx,
+          "humanName" -> globalStor.getHumanNameScaleByName(x._1),
           "state" -> state
         )
 
@@ -66,10 +77,15 @@ class MainController @Inject()(val cc: ControllerComponents, stateStorage: State
         val state: JsValue = optMachine match {
           case None => Json.obj("none" -> s"Не найдена стейт-машина по имени $name")
           case Some(stMachine) =>
+            val indx = stMachine.idnx
             val optState = stMachine.getState
             optState match {
-            case None => Json.obj("none" -> s"Не установлено состояние стейт-машины $name")
+            case None => Json.obj(
+              "none" -> s"Не установлено состояние стейт-машины $name",
+              "indx" -> indx
+            )
             case Some(StateAutoPlatform(perimeters, weight)) => Json.obj(
+              "indx" -> indx,
               "type" -> "auto",
               "weight" -> weight,
               "perimeters" -> Json.obj(
@@ -94,7 +110,7 @@ class MainController @Inject()(val cc: ControllerComponents, stateStorage: State
   }
 
   def getValidNames: Action[AnyContent] = Action { request: Request[AnyContent] =>
-    val names = phisManager.getValidNames().map(JsString(_))
+    val names = phisManager.getValidNames.map(JsString)
     Ok(JsArray(names))
   }
 }
