@@ -1,7 +1,6 @@
 package models.extractors
 
 import models.configs.ProtocolsConf
-import models.extractors.Protocol2WithCard.{patternPrefix, patternWeight}
 import play.api.Logger
 
 import scala.util.matching.Regex
@@ -34,7 +33,7 @@ trait Protocol {
   //-------------------------- ЖД весы
   protected val patternRailPrefix:Regex = "=".r
   protected val patternRailWeight:Regex = "([0-9]{6}|-[0-9]{5}|[0-9]{7}|-[0-9]{6})".r
-  protected val protokolRail = ProtocolsConf.getProtocolByName("SCALE_DATA_PATTERN_RAIL_PROTOCOL")
+  protected val protokolRail: String = ProtocolsConf.getProtocolByName("SCALE_DATA_PATTERN_RAIL_PROTOCOL")
 
 }
 
