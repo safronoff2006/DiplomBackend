@@ -1,6 +1,7 @@
 package models.extractors
 
 import models.configs.ProtocolsConf
+import models.extractors.Protocol2WithCard.{patternPrefix, patternWeight}
 import play.api.Logger
 
 import scala.util.matching.Regex
@@ -8,6 +9,7 @@ import scala.util.matching.Regex
 
 trait Protocol {
   val logger: Logger = Logger(this.getClass)
+  //-------------------------- Автомобильные весы
   protected val patternPrefix: Regex = "[vV]".r
   val patternPerimeters: Regex = "[-+?]{4}".r
   protected val patternWeight: Regex = ("(\\?{6}|\\s{6}" +
@@ -26,12 +28,18 @@ trait Protocol {
   protected val pCard: Regex = "([0-9a-fA-F]{8})|([0-9a-fA-F\\-]{36})".r
   protected val pCardType: Regex = "[MQ]".r
 
+  //--------------------------------------------------
   protected class ProtocolCreateException (s:String) extends Exception(s)
+
+  //-------------------------- ЖД весы
+  protected val patternRailPrefix:Regex = "=".r
+  protected val patternRailWeight:Regex = "([0-9]{6}|-[0-9]{5}|[0-9]{7}|-[0-9]{6})".r
+  protected val protokolRail = ProtocolsConf.getProtocolByName("SCALE_DATA_PATTERN_RAIL_PROTOCOL")
+
 }
 
-trait NoCardOrWithCard
-
-object Protocol2NoCard extends Protocol {
+  trait NoCardOrWithCard
+  object Protocol2NoCard extends Protocol {
   case class NoCard(prefix: String, perimeters: String, weight: String, crc: String) extends NoCardOrWithCard
 
   def apply(prefix: String, perimeters: String, weight: String, crc: String): String = {
@@ -42,9 +50,7 @@ object Protocol2NoCard extends Protocol {
 
     prefix + perimeters + weight + "%" + crc + "."
   }
-
   def apply(obj: NoCard): String = apply(obj.prefix, obj.perimeters, obj.weight, obj.crc)
-
 
   def unapply(str: String): Option[NoCard] = {
     val isProtocol = protokol2.r.matches(str)
@@ -64,10 +70,8 @@ object Protocol2NoCard extends Protocol {
 }
 
 object Protocol2WithCard extends Protocol {
-
   case class WithCard(prefix: String, perimeters: String, weight: String, crc: String,
                       card: String, typeCard: String) extends NoCardOrWithCard
-
   def apply(prefix: String, perimeters: String, weight: String, crc: String, card: String, typeCard: String): String = {
     if (!patternPrefix.matches(prefix)) throw new ProtocolCreateException(s"Не корректный префикс потокола: $prefix")
     if (!patternPerimeters.matches(perimeters)) throw new ProtocolCreateException(s"Не корректные периметры потокола: $perimeters")
@@ -77,12 +81,9 @@ object Protocol2WithCard extends Protocol {
     if (!pCardType.matches(typeCard)) throw new ProtocolCreateException(s"Не корректный  тип карты протокола: $typeCard")
     if (typeCard == "M" && card.length != 8) throw new  ProtocolCreateException(s"Не корректная карта потокола: $card")
     if (typeCard == "Q" && card.length != 36) throw new  ProtocolCreateException(s"Не корректная карта потокола: $card")
-
     prefix + perimeters + weight + typeCard + card + "%" + crc + "."
   }
-
   def apply(obj:WithCard): String = apply(obj.prefix, obj.perimeters, obj.weight, obj.crc, obj.card, obj.typeCard)
-
   def unapply(str: String): Option[WithCard] = {
     val isProtocol = protokol2.r.matches(str)
     val isCard: Boolean = protokol2Cards
@@ -106,6 +107,28 @@ object Protocol2WithCard extends Protocol {
       Some(WithCard(prefix, perimeters, weight, crc, card, typeCard))
 
     } else None
+  }
+}
+
+object ProtocolRail extends Protocol {
+  case class RailWeight(prefix:String, weight:String)  extends NoCardOrWithCard
+
+  def apply(prefix:String, weight:String):String = {
+    if (!patternRailPrefix.matches(prefix)) throw new ProtocolCreateException(s"Не корректный префикс потокола: $prefix")
+    if (!patternRailWeight.matches(weight)) throw new ProtocolCreateException(s"Не корректный вес потокола: $weight")
+    prefix + weight + "."
+  }
+
+  def apply(obj: RailWeight):String = apply(obj.prefix, obj.weight)
+
+  def unapply(str: String):Option[RailWeight] = {
+    val isProtocol =protokolRail.r.matches(str)
+    if (isProtocol) {
+      val prefix = str.substring(0, 1)
+      val weight = str.substring(1, str.indexOf("."))
+      Some(RailWeight(prefix, weight))
+    }
+    else None
   }
 }
 

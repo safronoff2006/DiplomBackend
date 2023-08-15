@@ -1,6 +1,7 @@
 package services.businesslogic.dispatchers
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import models.extractors.ProtocolRail.RailWeight
 import play.api.Logger
 import services.businesslogic.channelparsers.Parser
 import services.businesslogic.channelparsers.Parser.PatternInfo
@@ -33,12 +34,13 @@ class RailWeighbridge @Inject() (@Named("RailParser") parser: Parser,
     case NameEvent(n: String) =>
       setName(n)
       log.info(s"Диспетчер именован: $name")
+      stateMachine.name = n
 
     case PrintNameEvent(prefix) =>    log.info(s"$prefix назначен диспетчер физических объектов $name")
     case obj:TcpMessageEvent =>
       log.info(obj.toString)
       parser.sendToParser(obj.message)
-
+    case obj:RailWeight => stateMachine.protocolMessage(obj)
     case _ =>
   }
 }
