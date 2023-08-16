@@ -53,7 +53,6 @@ class ParserRailProtocol @Inject() (implicit ex:CustomBlockingExecutionContext) 
   }
 
   override protected def parse(message: String): Unit = {
-    logger.info(s"Парсинг сообщения  $message" )
     pattern._1 match {
       case "SCALE_DATA_PATTERN_RAIL_PROTOCOL" => parseProtokolR(message)
       case _ =>

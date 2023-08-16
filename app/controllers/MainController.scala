@@ -7,6 +7,7 @@ import play.api.libs.json.{JsArray, JsString, JsValue, Json}
 import play.api.mvc._
 import services.businesslogic.managers.PhisicalObjectsManager
 import services.businesslogic.statemachines.AutoStateMachine.StateAutoPlatform
+import services.businesslogic.statemachines.RailStateMachine.StateRailPlatform
 import services.businesslogic.statemachines.StateMachine
 import services.storage.{GlobalStorage, StateMachinesStorage}
 
@@ -49,6 +50,17 @@ class MainController @Inject()(val cc: ControllerComponents, stateStorage: State
                 "right" -> perimeters.right.toString
               )
             )
+            case StateRailPlatform(weight) =>  Json.obj(
+              "type" -> "rail",
+              "weight" -> weight,
+              "perimeters" -> Json.obj(
+                "in" -> "?",
+                "out" -> "?",
+                "left" -> "?",
+                "right" -> "?"
+              )
+            )
+
             case _ => Json.obj("presentation" -> st.toString)
           }
         }
@@ -93,6 +105,19 @@ class MainController @Inject()(val cc: ControllerComponents, stateStorage: State
                 "out" -> perimeters.out.toString,
                 "left" -> perimeters.left.toString,
                 "right" -> perimeters.right.toString
+              )
+            )
+
+            case Some(StateRailPlatform(weight)) => Json.obj(
+              "indx" -> indx,
+              "type" -> "auto",
+              "weight" -> weight,
+              "perimeters" -> Json.obj(
+                "in" -> "?",
+                "out" -> "?",
+                "left" -> "?",
+                "right" -> "?"
+
               )
             )
             case _ => Json.obj("presentation" -> optState.get.toString)

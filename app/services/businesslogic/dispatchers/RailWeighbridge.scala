@@ -37,9 +37,7 @@ class RailWeighbridge @Inject() (@Named("RailParser") parser: Parser,
       stateMachine.name = n
 
     case PrintNameEvent(prefix) =>    log.info(s"$prefix назначен диспетчер физических объектов $name")
-    case obj:TcpMessageEvent =>
-      log.info(obj.toString)
-      parser.sendToParser(obj.message)
+    case obj:TcpMessageEvent => parser.sendToParser(obj.message)
     case obj:RailWeight => stateMachine.protocolMessage(obj)
     case _ =>
   }
