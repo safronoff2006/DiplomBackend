@@ -59,6 +59,8 @@ class TestTcpClientsManager @Inject()(tcpStorage: TcpStorage, system: ActorSyste
       val seqConf = optServersConfigs.get
       seqConf.foreach {
         server =>
+          logger.info(s"Найден сервер с ID ${server.id}")
+
           val remoteSocket = new InetSocketAddress(hostip, server.port)
           val client = system.actorOf(TcpClient.props(remoteSocket, this), java.util.UUID.randomUUID.toString)
           mapClients.put(server.id, ClientConf(server.id, server.port, client))
@@ -79,10 +81,12 @@ class TestTcpClientsManager @Inject()(tcpStorage: TcpStorage, system: ActorSyste
   }
 
   def setData(id: String, data: String): Unit = {
+
       if (mapData.containsKey(id)) {
         mapData.put(id, Some(data))
-
+        logger.info(s"mapData contiains key $id")
         if (mapClients.containsKey(id)) {
+          logger.info(s"mapClients contiains key $id")
           val clientObject: ClientConf = mapClients.get(id)
           clientObject.client !  ByteString(data)
         }

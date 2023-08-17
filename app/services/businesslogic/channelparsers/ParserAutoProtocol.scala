@@ -75,8 +75,8 @@ class ParserAutoProtocol @Inject()(implicit ex: CustomBlockingExecutionContext) 
          case Protocol2NoCard(protocolObj) => sendProtocolObjectToDispatcher(protocolObj)
          case Protocol2WithCard(protocolObj) =>
            protocolObj match {
-             case WithCard(_, _, _, _, _, "M") => sendProtocolObjectToDispatcher(protocolObj)
-             case WithCard(_, _, _, _, _, "Q") =>
+             case WithCard(_, _, _, _, _, "M",_) => sendProtocolObjectToDispatcher(protocolObj)
+             case WithCard(_, _, _, _, _, "Q",_) =>
                logger.warn(s"Поступил не поддерживаемый системой QR-код: $protocolObj")
              case _ =>
            }

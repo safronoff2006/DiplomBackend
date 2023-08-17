@@ -40,7 +40,7 @@ class MainController @Inject()(val cc: ControllerComponents, stateStorage: State
               "none" -> s"Не установлено состояние стейт-машины $name"
             )
           case Some(st) => st match {
-            case StateAutoPlatform(perimeters, weight) => Json.obj(
+            case StateAutoPlatform(perimeters, weight, svetofor) => Json.obj(
               "type" -> "auto",
               "weight" -> weight,
               "perimeters" -> Json.obj(
@@ -48,7 +48,8 @@ class MainController @Inject()(val cc: ControllerComponents, stateStorage: State
                 "out" -> perimeters.out.toString,
                 "left" -> perimeters.left.toString,
                 "right" -> perimeters.right.toString
-              )
+              ),
+              "svetofor" -> svetofor
             )
             case StateRailPlatform(weight) =>  Json.obj(
               "type" -> "rail",
@@ -96,7 +97,7 @@ class MainController @Inject()(val cc: ControllerComponents, stateStorage: State
               "none" -> s"Не установлено состояние стейт-машины $name",
               "indx" -> indx
             )
-            case Some(StateAutoPlatform(perimeters, weight)) => Json.obj(
+            case Some(StateAutoPlatform(perimeters, weight, svetofor)) => Json.obj(
               "indx" -> indx,
               "type" -> "auto",
               "weight" -> weight,
@@ -105,7 +106,8 @@ class MainController @Inject()(val cc: ControllerComponents, stateStorage: State
                 "out" -> perimeters.out.toString,
                 "left" -> perimeters.left.toString,
                 "right" -> perimeters.right.toString
-              )
+              ),
+              "svetofor" -> svetofor
             )
 
             case Some(StateRailPlatform(weight)) => Json.obj(

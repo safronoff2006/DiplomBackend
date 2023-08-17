@@ -16,16 +16,18 @@ import javax.inject.Inject
 
 object AutoStateMachine {
   case class Perimeters(in: Char, out: Char, left: Char, right: Char)
-  case class StateAutoPlatform(perimeters: Perimeters, weight: Int) extends StatePlatform
+  case class StateAutoPlatform(perimeters: Perimeters, weight: Int, svetofor : String) extends StatePlatform
+
+
   object StateAutoPlatform {
     private class ParsePerimetersException(s: String) extends Exception(s)
-    def apply(perimeters: String, weight: Int): StateAutoPlatform = {
+    def apply(perimeters: String, weight: Int, svetofor: String): StateAutoPlatform = {
       if (!patternPerimeters.matches(perimeters))
         throw new ParsePerimetersException(s"Не верный формат периметров: $perimeters")
 
       val p: Perimeters = Perimeters(perimeters.charAt(0), perimeters.charAt(1),
         perimeters.charAt(2), perimeters.charAt(3))
-      StateAutoPlatform(p, weight)
+      StateAutoPlatform(p, weight, svetofor)
     }
   }
 }
@@ -49,13 +51,13 @@ class AutoStateMachine @Inject()(@Named("CardPatternName") nameCardPattern: Stri
   private val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss SSS")
 
   override def protocolExecute(message: NoCardOrWithCard): Unit = {
-    val stateData: (String, String) = message match {
+    val stateData: (String, String, String) = message match {
       case protocolObject: NoCard =>
-        (protocolObject.perimeters, protocolObject.weight)
+        (protocolObject.perimeters, protocolObject.weight, protocolObject.svetofor)
       case protocolObject: WithCard =>
         cardExecute(protocolObject.card)
-        (protocolObject.perimeters, protocolObject.weight)
-      case _ => ("????", "??????")
+        (protocolObject.perimeters, protocolObject.weight, protocolObject.svetofor)
+      case _ => ("????", "??????", "?")
     }
 
     val perimeters: Perimeters = Perimeters(
@@ -65,7 +67,7 @@ class AutoStateMachine @Inject()(@Named("CardPatternName") nameCardPattern: Stri
       stateData._1.charAt(3)
     )
 
-    val newState = StateAutoPlatform(perimeters, stateData._2.replace('?', '0').replace(' ', '0').toInt)
+    val newState = StateAutoPlatform(perimeters, stateData._2.replace('?', '0').replace(' ', '0').toInt, stateData._3)
 
     state.setState(Some(newState))
     //val d = LocalDateTime.now

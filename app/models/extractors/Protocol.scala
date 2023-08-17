@@ -26,6 +26,7 @@ trait Protocol {
 
   protected val pCard: Regex = "([0-9a-fA-F]{8})|([0-9a-fA-F\\-]{36})".r
   protected val pCardType: Regex = "[MQ]".r
+  protected val pSvetofor:Regex = "[RG?]".r
 
   //--------------------------------------------------
   protected class ProtocolCreateException (s:String) extends Exception(s)
@@ -39,17 +40,18 @@ trait Protocol {
 
   trait NoCardOrWithCard
   object Protocol2NoCard extends Protocol {
-  case class NoCard(prefix: String, perimeters: String, weight: String, crc: String) extends NoCardOrWithCard
+  case class NoCard(prefix: String, perimeters: String, weight: String, crc: String, svetofor: String) extends NoCardOrWithCard
 
-  def apply(prefix: String, perimeters: String, weight: String, crc: String): String = {
+  def apply(prefix: String, perimeters: String, weight: String, crc: String, svetofor: String): String = {
     if (!patternPrefix.matches(prefix)) throw new ProtocolCreateException(s"Не корректный префикс потокола: $prefix")
     if (!patternPerimeters.matches(perimeters)) throw new ProtocolCreateException(s"Не корректные периметры потокола: $perimeters")
     if (!patternWeight.matches(weight)) throw new ProtocolCreateException(s"Не корректный вес потокола: $weight")
     if (!patternCrc.matches(crc)) throw new ProtocolCreateException(s"Не корректный CRC потокола: $crc")
+    if (!pSvetofor.matches(svetofor)) throw new ProtocolCreateException(s"Не корректный светофор потокола: $crc")
 
-    prefix + perimeters + weight + "%" + crc + "."
+    prefix + perimeters + weight + svetofor + "%" + crc + "."
   }
-  def apply(obj: NoCard): String = apply(obj.prefix, obj.perimeters, obj.weight, obj.crc)
+  def apply(obj: NoCard): String = apply(obj.prefix, obj.perimeters, obj.weight, obj.crc, obj.svetofor)
 
   def unapply(str: String): Option[NoCard] = {
     val isProtocol = protokol2.r.matches(str)
@@ -63,15 +65,22 @@ trait Protocol {
       val prefix = parts(0).substring(0, 1)
       val perimeters = parts(0).substring(1, 5)
       val weight = parts(0).substring(5, 11)
-      Some(NoCard(prefix, perimeters, weight, crc))
+
+      val svetofor = parts(0).length match {
+        case 11 => "?"
+        case 12 => parts(0).substring(11,12)
+        case _ => "?"
+      }
+
+      Some(NoCard(prefix, perimeters, weight, crc, svetofor))
     }
   }
 }
 
 object Protocol2WithCard extends Protocol {
   case class WithCard(prefix: String, perimeters: String, weight: String, crc: String,
-                      card: String, typeCard: String) extends NoCardOrWithCard
-  def apply(prefix: String, perimeters: String, weight: String, crc: String, card: String, typeCard: String): String = {
+                      card: String, typeCard: String, svetofor: String) extends NoCardOrWithCard
+  def apply(prefix: String, perimeters: String, weight: String, crc: String, card: String, typeCard: String, svetofor: String): String = {
     if (!patternPrefix.matches(prefix)) throw new ProtocolCreateException(s"Не корректный префикс потокола: $prefix")
     if (!patternPerimeters.matches(perimeters)) throw new ProtocolCreateException(s"Не корректные периметры потокола: $perimeters")
     if (!patternWeight.matches(weight)) throw new ProtocolCreateException(s"Не корректный вес потокола: $weight")
@@ -80,9 +89,10 @@ object Protocol2WithCard extends Protocol {
     if (!pCardType.matches(typeCard)) throw new ProtocolCreateException(s"Не корректный  тип карты протокола: $typeCard")
     if (typeCard == "M" && card.length != 8) throw new  ProtocolCreateException(s"Не корректная карта потокола: $card")
     if (typeCard == "Q" && card.length != 36) throw new  ProtocolCreateException(s"Не корректная карта потокола: $card")
-    prefix + perimeters + weight + typeCard + card + "%" + crc + "."
+    if (!pSvetofor.matches(svetofor)) throw new ProtocolCreateException(s"Не корректный светофор потокола: $svetofor")
+    prefix + perimeters + weight + typeCard + card + svetofor + "%" + crc + "."
   }
-  def apply(obj:WithCard): String = apply(obj.prefix, obj.perimeters, obj.weight, obj.crc, obj.card, obj.typeCard)
+  def apply(obj:WithCard): String = apply(obj.prefix, obj.perimeters, obj.weight, obj.crc, obj.card, obj.typeCard, obj.svetofor)
   def unapply(str: String): Option[WithCard] = {
     val isProtocol = protokol2.r.matches(str)
     val isCard: Boolean = protokol2Cards
@@ -101,9 +111,21 @@ object Protocol2WithCard extends Protocol {
         case i if i < 0 => parts(0).indexOf("Q")
       }
 
-      val card = parts(0).substring(indexMQ + 1)
+      val simbolMQ: String = parts(0).substring(indexMQ, indexMQ + 1)
+
+      val card = simbolMQ match {
+        case "M" => parts(0).substring(indexMQ + 1, indexMQ + 9)
+        case "Q" => parts(0).substring(indexMQ + 1, indexMQ + 37)
+      }
+
+      val svetofor = parts(0).takeRight(1) match {
+        case str: String if str == "R" || str == "G"  => str
+        case _ => "?"
+      }
+
+
       val typeCard = parts(0).substring(indexMQ, indexMQ + 1)
-      Some(WithCard(prefix, perimeters, weight, crc, card, typeCard))
+      Some(WithCard(prefix, perimeters, weight, crc, card, typeCard, svetofor))
 
     } else None
   }
