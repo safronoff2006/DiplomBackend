@@ -29,6 +29,12 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
   override def configure(): Unit = {
     logger.info("Выполняется конфигурация модуля Guice")
 
+    //привязка флага проверки CRC
+    if (ConfigFactory.load.hasPath("useCRC")) {
+      val useCRC = ConfigFactory.load.getBoolean("useCRC")
+      bind(classOf[Boolean]).annotatedWith(Names.named("UseCRC")).toInstance(useCRC)
+    } else bind(classOf[Boolean]).annotatedWith(Names.named("UseCRC")).toInstance(false)
+
     //привязка пользовательского контекста исполнения для блокирующих и длительных операций
     bind(classOf[CustomBlockingExecutionContext]).asEagerSingleton()
 

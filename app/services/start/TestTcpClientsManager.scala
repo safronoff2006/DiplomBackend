@@ -75,18 +75,13 @@ class TestTcpClientsManager @Inject()(tcpStorage: TcpStorage, system: ActorSyste
 
     }
 
-
-
-
   }
 
   def setData(id: String, data: String): Unit = {
 
       if (mapData.containsKey(id)) {
         mapData.put(id, Some(data))
-        logger.info(s"mapData contiains key $id")
         if (mapClients.containsKey(id)) {
-          logger.info(s"mapClients contiains key $id")
           val clientObject: ClientConf = mapClients.get(id)
           clientObject.client !  ByteString(data)
         }

@@ -1,13 +1,18 @@
 package models.extractors
 
+import com.typesafe.config.ConfigFactory
 import models.configs.ProtocolsConf
 import play.api.Logger
+import utils.CRC16Modbus
 
 import scala.util.matching.Regex
 
 
 trait Protocol {
   val logger: Logger = Logger(this.getClass)
+
+  val useCRC: Boolean = if (ConfigFactory.load.hasPath("useCRC")) ConfigFactory.load.getBoolean("useCRC") else false
+
   //-------------------------- Автомобильные весы
   protected val patternPrefix: Regex = "[vV]".r
   val patternPerimeters: Regex = "[-+?]{4}".r
@@ -66,13 +71,27 @@ trait Protocol {
       val perimeters = parts(0).substring(1, 5)
       val weight = parts(0).substring(5, 11)
 
+
+
       val svetofor = parts(0).length match {
         case 11 => "?"
         case 12 => parts(0).substring(11,12)
         case _ => "?"
       }
 
-      Some(NoCard(prefix, perimeters, weight, crc, svetofor))
+      val crcLongSended: Long = java.lang.Long.parseLong(crc,16)
+      val modbus = new CRC16Modbus
+      modbus.reset()
+      val left = parts(0) + "%"
+      modbus.update(left.getBytes, 0, left.length)
+      val crcLongCalculated: Long = modbus.getValue
+
+      (useCRC, crcLongSended, crcLongCalculated) match {
+        case (false, _, _) =>  Some(NoCard(prefix, perimeters, weight, crc, svetofor))
+        case (true, c1, c2) if c1 == c2 => Some(NoCard(prefix, perimeters, weight, crc, svetofor))
+        case _ => None
+      }
+
     }
   }
 }
@@ -123,9 +142,20 @@ object Protocol2WithCard extends Protocol {
         case _ => "?"
       }
 
-
       val typeCard = parts(0).substring(indexMQ, indexMQ + 1)
-      Some(WithCard(prefix, perimeters, weight, crc, card, typeCard, svetofor))
+
+      val crcLongSended: Long = java.lang.Long.parseLong(crc, 16)
+      val modbus = new CRC16Modbus
+      modbus.reset()
+      val left = parts(0) + "%"
+      modbus.update(left.getBytes, 0, left.length)
+      val crcLongCalculated: Long = modbus.getValue
+
+      (useCRC, crcLongSended, crcLongCalculated) match {
+        case (false, _, _) => Some(WithCard(prefix, perimeters, weight, crc, card, typeCard, svetofor))
+        case (true, c1, c2) if c1 == c2 => Some(WithCard(prefix, perimeters, weight, crc, card, typeCard, svetofor))
+        case _ => None
+      }
 
     } else None
   }
