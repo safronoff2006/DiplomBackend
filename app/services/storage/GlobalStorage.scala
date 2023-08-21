@@ -21,7 +21,9 @@ class GlobalStorage {
     mapHumanNamesScale  // только в режиме текста, должно брать из базы данных
   }
   private def getKeysOfName: Seq[String] = getHumanNamesScales.toList.map(_._1)
+
   private def getOptionHumanNameScaleByName(name: String): Option[String] = getHumanNamesScales.get(name)
+
   def getHumanNameScaleByName(name: String):String = getOptionHumanNameScaleByName(name) match {
     case Some(humanName) => humanName
     case None =>

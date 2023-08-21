@@ -38,7 +38,7 @@ object TcpConf {
           }
 
           if (ids.contains(id)) {
-            throw new DublicatePort(s"Парсинг конфигурации Tcp Сервера. Дублируется ID $id")
+            throw new DublicateId(s"Парсинг конфигурации Tcp Сервера. Дублируется ID $id")
           }
 
           ports = port :: ports

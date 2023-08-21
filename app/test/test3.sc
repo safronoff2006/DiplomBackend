@@ -9,7 +9,7 @@ s.takeRight(1)
 
 val modbus = new CRC16Modbus()
 modbus.reset()
-val str = "v-+++ 24000R%"
+val str = "v++++      %"
 modbus.update(str.getBytes(),0,str.length)
 modbus.getValue
 modbus.getValue.toHexString

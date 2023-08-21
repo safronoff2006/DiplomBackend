@@ -21,66 +21,66 @@ import scala.concurrent.Future
 @Singleton
 class MainController @Inject()(val cc: ControllerComponents, stateStorage: StateMachinesStorage,
                                phisManager: PhisicalObjectsManager, globalStor: GlobalStorage)
-                              (implicit ex: CustomBlockingExecutionContext )  extends AbstractController(cc) {
+                              (implicit ex: CustomBlockingExecutionContext) extends AbstractController(cc) {
 
   private val logger: Logger = Logger(this.getClass)
   logger.info("Создан MainController")
 
 
-
-
   private def jsonStatesOfListStates(listStates: List[(String, StateMachine)]): Result = {
-    val isres: Seq[JsValue]= listStates.map(smPair => (smPair._1, smPair._2.getState, smPair._2.idnx)).map {
-      x =>
-        val indx = x._3
-        val state = x._2 match {
-          case None =>
-            val name = x._1
-            Json.obj(
-              "none" -> s"Не установлено состояние стейт-машины $name"
-            )
-          case Some(st) => st match {
-            case StateAutoPlatform(perimeters, weight, svetofor) => Json.obj(
-              "type" -> "auto",
-              "weight" -> weight,
-              "perimeters" -> Json.obj(
-                "in" -> perimeters.in.toString,
-                "out" -> perimeters.out.toString,
-                "left" -> perimeters.left.toString,
-                "right" -> perimeters.right.toString
-              ),
-              "svetofor" -> svetofor
-            )
-            case StateRailPlatform(weight) =>  Json.obj(
-              "type" -> "rail",
-              "weight" -> weight,
-              "perimeters" -> Json.obj(
-                "in" -> "?",
-                "out" -> "?",
-                "left" -> "?",
-                "right" -> "?"
+    val isres: Seq[JsValue] = listStates
+      .map(smPair => (smPair._1, smPair._2.getState, smPair._2.idnx))
+      .map {
+        x =>
+          val indx = x._3
+          val state = x._2 match {
+            case None =>
+              val name = x._1
+              Json.obj(
+                "none" -> s"Не установлено состояние стейт-машины $name"
               )
-            )
+            case Some(st) => st match {
+              case StateAutoPlatform(perimeters, weight, svetofor) => Json.obj(
+                "type" -> "auto",
+                "weight" -> weight,
+                "perimeters" -> Json.obj(
+                  "in" -> perimeters.in.toString,
+                  "out" -> perimeters.out.toString,
+                  "left" -> perimeters.left.toString,
+                  "right" -> perimeters.right.toString
+                ),
+                "svetofor" -> svetofor
+              )
+              case StateRailPlatform(weight) => Json.obj(
+                "type" -> "rail",
+                "weight" -> weight,
+                "perimeters" -> Json.obj(
+                  "in" -> "?",
+                  "out" -> "?",
+                  "left" -> "?",
+                  "right" -> "?"
+                )
+              )
 
-            case _ => Json.obj("presentation" -> st.toString)
+              case _ => Json.obj("presentation" -> st.toString)
+            }
           }
-        }
 
-        Json.obj(
-          "name" -> x._1,
-          "indx" -> indx,
-          "humanName" -> globalStor.getHumanNameScaleByName(x._1),
-          "state" -> state
-        )
+          Json.obj(
+            "name" -> x._1,
+            "indx" -> indx,
+            "humanName" -> globalStor.getHumanNameScaleByName(x._1),
+            "state" -> state
+          )
 
-    }
+      }
 
     val res = Json.obj("states" -> JsArray(isres))
     Ok(res)
   }
 
   def getAllStates: Action[AnyContent] = Action.async {
-    request: Request[AnyContent] => Future (jsonStatesOfListStates(stateStorage.getList))
+    request: Request[AnyContent] => Future(jsonStatesOfListStates(stateStorage.getList))
   }
 
   def getState(name: String): Action[AnyContent] = Action.async {
@@ -93,37 +93,37 @@ class MainController @Inject()(val cc: ControllerComponents, stateStorage: State
             val indx = stMachine.idnx
             val optState = stMachine.getState
             optState match {
-            case None => Json.obj(
-              "none" -> s"Не установлено состояние стейт-машины $name",
-              "indx" -> indx
-            )
-            case Some(StateAutoPlatform(perimeters, weight, svetofor)) => Json.obj(
-              "indx" -> indx,
-              "type" -> "auto",
-              "weight" -> weight,
-              "perimeters" -> Json.obj(
-                "in" -> perimeters.in.toString,
-                "out" -> perimeters.out.toString,
-                "left" -> perimeters.left.toString,
-                "right" -> perimeters.right.toString
-              ),
-              "svetofor" -> svetofor
-            )
-
-            case Some(StateRailPlatform(weight)) => Json.obj(
-              "indx" -> indx,
-              "type" -> "auto",
-              "weight" -> weight,
-              "perimeters" -> Json.obj(
-                "in" -> "?",
-                "out" -> "?",
-                "left" -> "?",
-                "right" -> "?"
-
+              case None => Json.obj(
+                "none" -> s"Не установлено состояние стейт-машины $name",
+                "indx" -> indx
               )
-            )
-            case _ => Json.obj("presentation" -> optState.get.toString)
-          }
+              case Some(StateAutoPlatform(perimeters, weight, svetofor)) => Json.obj(
+                "indx" -> indx,
+                "type" -> "auto",
+                "weight" -> weight,
+                "perimeters" -> Json.obj(
+                  "in" -> perimeters.in.toString,
+                  "out" -> perimeters.out.toString,
+                  "left" -> perimeters.left.toString,
+                  "right" -> perimeters.right.toString
+                ),
+                "svetofor" -> svetofor
+              )
+
+              case Some(StateRailPlatform(weight)) => Json.obj(
+                "indx" -> indx,
+                "type" -> "auto",
+                "weight" -> weight,
+                "perimeters" -> Json.obj(
+                  "in" -> "?",
+                  "out" -> "?",
+                  "left" -> "?",
+                  "right" -> "?"
+
+                )
+              )
+              case _ => Json.obj("presentation" -> optState.get.toString)
+            }
         }
         Ok(state)
       }
@@ -131,9 +131,10 @@ class MainController @Inject()(val cc: ControllerComponents, stateStorage: State
   }
 
   def getListStates(name: List[String]): Action[AnyContent] = Action.async {
-    request: Request[AnyContent] => Future {
-      jsonStatesOfListStates(stateStorage.getList.filter(x => name.contains(x._1)))
-    }
+    request: Request[AnyContent] =>
+      Future {
+        jsonStatesOfListStates(stateStorage.getList.filter(x => name.contains(x._1)))
+      }
   }
 
   def getValidNames: Action[AnyContent] = Action { request: Request[AnyContent] =>
