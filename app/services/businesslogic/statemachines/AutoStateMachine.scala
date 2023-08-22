@@ -45,7 +45,7 @@ class AutoStateMachine @Inject()(@Named("CardPatternName") nameCardPattern: Stri
 
 
   private def cardExecute(card: String): Unit = {
-
+    logger.info(s"Card: $card")
   }
 
   private val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss SSS")
