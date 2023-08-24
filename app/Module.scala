@@ -29,6 +29,13 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
   override def configure(): Unit = {
     logger.info("Выполняется конфигурация модуля Guice")
 
+    //привязка флага конвертации кода EmMarine из Hex в Text
+    if (ConfigFactory.load.hasPath("convert_HexEmMarine_to_TextEmMarine")) {
+      val convert = ConfigFactory.load.getBoolean("convert_HexEmMarine_to_TextEmMarine")
+      bind(classOf[Boolean]).annotatedWith(Names.named("ConvertEmMarine")).toInstance(convert)
+    } else bind(classOf[Boolean]).annotatedWith(Names.named("ConvertEmMarine")).toInstance(false)
+
+
     //привязка флага проверки CRC
     if (ConfigFactory.load.hasPath("useCRC")) {
       val useCRC = ConfigFactory.load.getBoolean("useCRC")

@@ -9,7 +9,7 @@ import play.api.Logger
 import services.businesslogic.statemachines.AutoStateMachine.{Perimeters, StateAutoPlatform}
 import services.businesslogic.statemachines.StateMachine.StatePlatform
 import services.storage.StateMachinesStorage
-import utils.AtomicOption
+import utils.{AtomicOption, EmMarineConvert}
 
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
@@ -33,7 +33,8 @@ object AutoStateMachine {
 }
 
 class AutoStateMachine @Inject()(@Named("CardPatternName") nameCardPattern: String,
-                                 stateStorage: StateMachinesStorage)
+                                 stateStorage: StateMachinesStorage,
+                                 @Named("ConvertEmMarine") convertEmMarine: Boolean)
                                 (implicit ex: CustomBlockingExecutionContext) extends StateMachine() {
   val logger: Logger = Logger(this.getClass)
   logger.info("Создана стейт машина AutoStateMachine")
@@ -45,7 +46,9 @@ class AutoStateMachine @Inject()(@Named("CardPatternName") nameCardPattern: Stri
 
 
   private def cardExecute(card: String): Unit = {
-    logger.info(s"Card: $card")
+    val formatedCard = if (convertEmMarine)  EmMarineConvert.emHexToEmText(card.toUpperCase)
+    else card.toUpperCase
+    logger.info(s"Card: $formatedCard")
   }
 
   private val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss SSS")
