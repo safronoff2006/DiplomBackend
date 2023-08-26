@@ -13,3 +13,8 @@ GET     /getAllStates               controllers.MainController.getAllStates
 GET     /getState                   controllers.MainController.getState(name:String)
 GET     /getListStates              controllers.MainController.getListStates(name: List[String])
 GET     /getValidNames              controllers.MainController.getValidNames
+
+
+POST    /cardData                   controllers.MainController.card
+POST    /workplacePing              controllers.MainController.workplacePing
+

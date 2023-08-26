@@ -1,7 +1,9 @@
 package controllers
 
-
 import executioncontexts.CustomBlockingExecutionContext
+import models.readerswriters.CardModel
+import models.readerswriters.CardModel.CardModelWritesReads
+import models.readerswriters.WorkplaceModel.WorkplaceModelWritesReads
 import play.api._
 import play.api.libs.json.{JsArray, JsString, JsValue, Json}
 import play.api.mvc._
@@ -13,6 +15,8 @@ import services.storage.{GlobalStorage, StateMachinesStorage}
 
 import javax.inject._
 import scala.concurrent.Future
+import scala.util.{Failure, Success, Try}
+
 
 /**
  * This controller creates an `Action` to handle HTTP requests to the
@@ -21,7 +25,10 @@ import scala.concurrent.Future
 @Singleton
 class MainController @Inject()(val cc: ControllerComponents, stateStorage: StateMachinesStorage,
                                phisManager: PhisicalObjectsManager, globalStor: GlobalStorage)
-                              (implicit ex: CustomBlockingExecutionContext) extends AbstractController(cc) {
+                              (implicit ex: CustomBlockingExecutionContext)
+  extends AbstractController(cc) with CardModelWritesReads with WorkplaceModelWritesReads {
+
+
 
   private val logger: Logger = Logger(this.getClass)
   logger.info("Создан MainController")
@@ -141,4 +148,53 @@ class MainController @Inject()(val cc: ControllerComponents, stateStorage: State
     val names = phisManager.getValidNames.map(JsString)
     Ok(JsArray(names))
   }
+
+  def card:  Action[AnyContent] = Action.async {
+   request =>
+     val body = request.body
+     val jsonBody = body.asJson
+
+     Future {
+              jsonBody
+                .map { json =>
+                  val optCard: Try[CardModel] = validateCard(json)
+                  optCard match {
+                    case Failure(ex) => BadRequest(s"Ошибка парсинга ${ex.getMessage}")
+                    case Success(cardObject) =>
+                      logger.info(s"Получена карта ${cardObject.card} от рабочего места ${cardObject.workplaceId}")
+                      Ok(json.toString())
+                  }
+                }
+                .getOrElse {
+                  BadRequest("Ожидается application/json тело запроса")
+                }
+
+            }
+
+     }
+
+  def workplacePing: Action[AnyContent] = Action.async {
+    request =>
+      val body = request.body
+      val jsonBody: Option[JsValue] = body.asJson
+
+      Future {
+        jsonBody
+          .map { json =>
+            val optPing = validateWorkplace(json)
+            optPing match {
+              case Failure(ex) => BadRequest(s"Ошибка парсинга ${ex.getMessage}")
+              case Success(pingObject) =>
+                logger.info(s"Пинг от рабочего места ${pingObject.workplaceId}")
+                Ok(json.toString())
+            }
+          }
+          .getOrElse {
+            BadRequest("Ожидается application/json тело запроса")
+          }
+
+      }
+
+  }
+
 }
