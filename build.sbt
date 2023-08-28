@@ -5,16 +5,19 @@ version := "1.0-SNAPSHOT"
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala).settings(
   scalaVersion := "2.13.11",
-    libraryDependencies ++= Seq(
+  libraryDependencies ++= Seq(
     guice,
     jdbc,
     evolutions,
     "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0" % Test,
     "org.postgresql" % "postgresql" % "42.6.0",
     "org.playframework.anorm" %% "anorm" % "2.7.0",
-    "commons-codec" % "commons-codec" % "1.16.0"
+    "commons-codec" % "commons-codec" % "20041127.091804"
+
 
   ),
+
+
   scalacOptions ++= List("-encoding", "utf8", "-deprecation", "-feature", "-unchecked", "-Xfatal-warnings"),
   javacOptions ++= List("-Xlint:unchecked", "-Xlint:deprecation", "-Werror")
 )

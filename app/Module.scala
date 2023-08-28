@@ -29,6 +29,12 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
   override def configure(): Unit = {
     logger.info("Выполняется конфигурация модуля Guice")
 
+    //привязка таймаута обработки карты
+    bind(classOf[Long]).annotatedWith(Names.named("CardTimeout")).toInstance(
+      if (ConfigFactory.load.hasPath("timeoutCardResponce"))  ConfigFactory.load.getLong("timeoutCardResponce")
+      else 5000
+    )
+
     //привязка флага конвертации кода EmMarine из Hex в Text
     if (ConfigFactory.load.hasPath("convert_HexEmMarine_to_TextEmMarine")) {
       val convert = ConfigFactory.load.getBoolean("convert_HexEmMarine_to_TextEmMarine")
