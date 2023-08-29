@@ -16,6 +16,7 @@ import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration.Duration
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
+
 case class ClientConf(id:String, port: Int, client: ActorRef )
 
 @Singleton
@@ -115,6 +116,8 @@ class TestTcpClientsManager @Inject()(tcpStorage: TcpStorage, system: ActorSyste
       optCancel.setState(None)
     case _ =>
   }
+
+
 
   override def connected(c: Tcp.Connected): Unit = {
     logger.info(s"TCP клиент ${c.localAddress.getAddress}:${c.localAddress.getPort} " +

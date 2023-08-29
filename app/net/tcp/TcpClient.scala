@@ -1,6 +1,7 @@
 package net.tcp
 
 import akka.actor.{Actor, Props}
+import akka.event.Logging
 import akka.io.Tcp.Connected
 import akka.io.{IO, Tcp}
 import akka.util.ByteString
@@ -27,6 +28,7 @@ class TcpClient (remote: InetSocketAddress, listener: TcpClientOwner) extends Ac
   import context.system
 
 
+  private val log = Logging(context.system, this)
 
 
   private def connectToServer(): Unit = {

@@ -28,6 +28,8 @@ abstract class StateMachine @Inject() (implicit ex: CustomBlockingExecutionConte
 
   def register(name: String): Unit
 
+  def cardResponse(param: String): Unit
+
   def getState: Option[StatePlatform]
 
   def name_=(value: String): Unit = {

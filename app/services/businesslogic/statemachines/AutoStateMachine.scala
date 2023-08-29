@@ -66,7 +66,6 @@ class AutoStateMachine @Inject()(@Named("CardPatternName") nameCardPattern: Stri
   private def cardExecute(card: String): Unit = {
     val formatedCard = if (convertEmMarine) EmMarineConvert.emHexToEmText(card.toUpperCase)
     else card.toUpperCase
-    logger.info(s"Card: $formatedCard")
 
     if (workedExchanger.getState.isEmpty) {
       workedCard.setState(Some(formatedCard))
@@ -87,20 +86,14 @@ class AutoStateMachine @Inject()(@Named("CardPatternName") nameCardPattern: Stri
           case e: TimeoutException =>
             workedCard.setState(None)
             workedExchanger.setState(None)
-            logger.warn(s"$name  Таймаут ответа на  карту ($cardTimeout)")
+            logger.warn(s"$name  Таймаут ответа на  карту ( $cardTimeout миллисекунд )")
         }
       })
     }
   }
 
-  //должно вызываться из внешнего по отношению к сервису потока
-  def cardResponse(param: String): Unit = {
-    workedExchanger.getState match {
-      case Some(exchanger) => exchanger.exchange(param)
-      case None =>
-    }
 
-  }
+
 
 
   private val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss SSS")
@@ -131,4 +124,12 @@ class AutoStateMachine @Inject()(@Named("CardPatternName") nameCardPattern: Stri
   }
 
   override def getState: Option[StatePlatform] = state.getState
+
+  //должно вызываться из внешнего по отношению к сервису потока
+  override def cardResponse(param: String): Unit = {
+    workedExchanger.getState match {
+      case Some(exchanger) => exchanger.exchange(param)
+      case None =>
+    }
+  }
 }

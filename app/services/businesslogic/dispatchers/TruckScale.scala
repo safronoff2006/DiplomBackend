@@ -6,10 +6,10 @@ import models.extractors.Protocol2WithCard.WithCard
 import play.api.Logger
 import services.businesslogic.channelparsers.Parser
 import services.businesslogic.channelparsers.Parser.PatternInfo
-
-import javax.inject.{Inject, Named, Singleton}
 import services.businesslogic.dispatchers.PhisicalObject._
 import services.businesslogic.statemachines.StateMachine
+
+import javax.inject.{Inject, Named, Singleton}
 
 object TruckScale {
   trait BuildFactory {
@@ -32,6 +32,7 @@ class  TruckScale @Inject()(@Named("AutoParser") parser: Parser,
   parser.setPattern(mainProtocolPattern)
 
   override def receive: Receive = {
+    case CardResponse(phisicalObject) => stateMachine.cardResponse(phisicalObject)
     case NameEvent(n: String) =>
       setName(n)
       log.info(s"Диспетчер именован: $name")

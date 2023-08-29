@@ -8,6 +8,8 @@ import net.tcp._
 import play.api.inject.{ApplicationLifecycle, Injector}
 import play.api.libs.json.{JsValue, Json}
 import play.api.{Application, Configuration, Logger, Play}
+import services.businesslogic.dispatchers.PhisicalObject.CardResponse
+import services.businesslogic.managers.PhisicalObjectsManager
 
 import java.util.Locale
 import javax.inject._
@@ -24,7 +26,8 @@ trait InterfaceStart {
 @Singleton
 class ApplicationStartDebug @Inject()(lifecycle: ApplicationLifecycle, environment: play.api.Environment,
                                       injector: Injector, config: Configuration,tcpBuilder: TcpServerBuilder,
-                                      implicit val system: ActorSystem, tcpClientsManager: TestTcpClientsManager)
+                                      implicit val system: ActorSystem, tcpClientsManager: TestTcpClientsManager,
+                                      dispatchers: PhisicalObjectsManager)
   extends InterfaceStart with TcpClientOwner {
 
   val logger: Logger = Logger(this.getClass)
@@ -128,6 +131,17 @@ class ApplicationStartDebug @Inject()(lifecycle: ApplicationLifecycle, environme
             case _  => logger.warn(s"Некорректный формат команды ${Json.prettyPrint(js)}")
           }
         case "norepeat" => tcpClientsManager.norepeat()
+        case "cardresponse" =>
+            val phisicalObjectOpt = (js \ "phisicalObject").asOpt[String]
+          phisicalObjectOpt match {
+            case None =>
+            case Some(po) =>
+              val dispatcherOpt = dispatchers.getPhisicalObjectByName(po)
+              dispatcherOpt match {
+                case None =>
+                case Some(dispatcher) => dispatcher !   CardResponse(po)
+              }
+          }
 
         case s:String => logger.warn(s"Неизвестная команда $s")
        }

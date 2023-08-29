@@ -35,4 +35,6 @@ class RailStateMachine  @Inject() (stateStorage: StateMachinesStorage) (implicit
   }
 
   override def getState: Option[StatePlatform] = state.getState
+
+  override def cardResponse(param: String): Unit = {}
 }
