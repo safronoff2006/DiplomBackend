@@ -1,14 +1,14 @@
-package services.businesslogic.dispatchers
+package services.businesslogic.dispatchers.notyped
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import models.extractors.ProtocolRail.RailWeight
 import play.api.Logger
 import services.businesslogic.channelparsers.Parser
 import services.businesslogic.channelparsers.Parser.PatternInfo
+import services.businesslogic.dispatchers.notyped.PhisicalObject._
+import services.businesslogic.statemachines.StateMachine
 
 import javax.inject.{Inject, Named, Singleton}
-import services.businesslogic.dispatchers.PhisicalObject._
-import services.businesslogic.statemachines.StateMachine
 
 object RailWeighbridge {
   trait BuildFactory {

@@ -1,8 +1,11 @@
 package services.businesslogic.channelparsers
 
-import akka.actor.ActorRef
+//старое нетепизированное
+
+//новое типизированое
 import executioncontexts.CustomBlockingExecutionContext
 import services.businesslogic.channelparsers.Parser.PatternInfo
+import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.PhisicalObjectEvent
 
 import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue}
 import javax.inject.Inject
@@ -13,8 +16,10 @@ object Parser {
 
 abstract class Parser @Inject() (implicit ex: CustomBlockingExecutionContext) {
 
+  //старое нетипизированное
+  private var dispatcher: Option[akka.actor.ActorRef] = None
 
-  private var dispatcher: Option[ActorRef] = None
+  private var dispatcherT: Option[akka.actor.typed.ActorRef[PhisicalObjectEvent]] = None
 
   protected var state: Int = 0
 
@@ -28,11 +33,19 @@ abstract class Parser @Inject() (implicit ex: CustomBlockingExecutionContext) {
     queue.put(message)
   }
 
-  def setDispatcher(ref: ActorRef): Unit = dispatcher = Some(ref)
+  //старое нетипизированное
+  def setDispatcher(ref: akka.actor.ActorRef): Unit = dispatcher = Some(ref)
+
+  //новое типизированное
+  def setDispatcherT(ref: akka.actor.typed.ActorRef[PhisicalObjectEvent]): Unit = dispatcherT = Some(ref)
 
   def setPattern(p: PatternInfo): Unit = pattern = p
 
-  def getDispatcher: Option[ActorRef] = dispatcher
+  //старое нетипизированное
+  def getDispatcher: Option[akka.actor.ActorRef] = dispatcher
+
+  //новое типизированное
+  def getDispatcherT: Option[akka.actor.typed.ActorRef[PhisicalObjectEvent]] = dispatcherT
 
   protected val maxUnitLength = 100
 

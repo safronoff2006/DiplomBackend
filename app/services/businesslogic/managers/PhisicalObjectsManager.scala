@@ -3,7 +3,7 @@ package services.businesslogic.managers
 import akka.actor.ActorRef
 import play.api.Logger
 
-import services.businesslogic.dispatchers.PhisicalObject._
+import services.businesslogic.dispatchers.notyped.PhisicalObject._
 import javax.inject.{Inject, Named, Singleton}
 
 @Singleton

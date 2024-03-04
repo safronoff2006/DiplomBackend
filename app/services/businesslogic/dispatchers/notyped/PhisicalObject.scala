@@ -1,4 +1,4 @@
-package services.businesslogic.dispatchers
+package services.businesslogic.dispatchers.notyped
 
 import akka.actor.Actor
 import akka.event.{Logging, LoggingAdapter}
@@ -8,6 +8,7 @@ import services.businesslogic.statemachines.StateMachine
 
 
 object PhisicalObject {
+
   case class NameEvent(name: String)
   case class PrintNameEvent(prefix:String)
   case class TcpMessageEvent(tcpId: String, phisicalObject: String, channelName: String, message: String)

@@ -3,6 +3,7 @@ package models.extractors
 import com.typesafe.config.ConfigFactory
 import models.configs.ProtocolsConf
 import play.api.Logger
+import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.PhisicalObjectEvent
 import utils.CRC16Modbus
 
 import scala.util.matching.Regex
@@ -45,7 +46,7 @@ trait Protocol {
 
   trait NoCardOrWithCard
   object Protocol2NoCard extends Protocol {
-  case class NoCard(prefix: String, perimeters: String, weight: String, crc: String, svetofor: String) extends NoCardOrWithCard
+  case class NoCard(prefix: String, perimeters: String, weight: String, crc: String, svetofor: String) extends NoCardOrWithCard with PhisicalObjectEvent
 
   def apply(prefix: String, perimeters: String, weight: String, crc: String, svetofor: String): String = {
     if (!patternPrefix.matches(prefix)) throw new ProtocolCreateException(s"Не корректный префикс потокола: $prefix")
@@ -98,7 +99,7 @@ trait Protocol {
 
 object Protocol2WithCard extends Protocol {
   case class WithCard(prefix: String, perimeters: String, weight: String, crc: String,
-                      card: String, typeCard: String, svetofor: String) extends NoCardOrWithCard
+                      card: String, typeCard: String, svetofor: String) extends NoCardOrWithCard with PhisicalObjectEvent
   def apply(prefix: String, perimeters: String, weight: String, crc: String, card: String, typeCard: String, svetofor: String): String = {
     if (!patternPrefix.matches(prefix)) throw new ProtocolCreateException(s"Не корректный префикс потокола: $prefix")
     if (!patternPerimeters.matches(perimeters)) throw new ProtocolCreateException(s"Не корректные периметры потокола: $perimeters")
@@ -161,8 +162,8 @@ object Protocol2WithCard extends Protocol {
   }
 }
 
-object ProtocolRail extends Protocol {
-  case class RailWeight(prefix:String, weight:String)  extends NoCardOrWithCard
+object ProtocolRail extends Protocol  {
+  case class RailWeight(prefix:String, weight:String)  extends NoCardOrWithCard with PhisicalObjectEvent
 
   def apply(prefix:String, weight:String):String = {
     if (!patternRailPrefix.matches(prefix)) throw new ProtocolCreateException(s"Не корректный префикс потокола: $prefix")

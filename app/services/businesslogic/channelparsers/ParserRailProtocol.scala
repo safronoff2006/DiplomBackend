@@ -4,6 +4,7 @@ import executioncontexts.CustomBlockingExecutionContext
 import models.extractors.{NoCardOrWithCard, ProtocolRail}
 import play.api.Logger
 import services.businesslogic.channelparsers.Parser.PatternInfo
+import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.PhisicalObjectEvent
 
 import javax.inject.Inject
 
@@ -59,7 +60,9 @@ class ParserRailProtocol @Inject() (implicit ex:CustomBlockingExecutionContext) 
     }
   }
 
-  private def sendProtocolObjectToDispatcher(protocolObj: NoCardOrWithCard): Unit = {
+  private def sendProtocolObjectToDispatcher(protocolObj: NoCardOrWithCard with PhisicalObjectEvent): Unit = {
+    //getDispatcher
+    //getDispatcherT
     getDispatcher match {
       case Some(dispatcherRef) => dispatcherRef ! protocolObj
       case None => logger.error("Не заполнен диспетчер физического объекта")
@@ -68,7 +71,7 @@ class ParserRailProtocol @Inject() (implicit ex:CustomBlockingExecutionContext) 
 
   private def compleatParseRUnit(unit: String): Unit = {
     unit match {
-      case ProtocolRail(protocolObj) => sendProtocolObjectToDispatcher(protocolObj)
+      case ProtocolRail(protocolObj) => sendProtocolObjectToDispatcher(protocolObj )
       case _ => logger.error(s"Единица протокола $unit не соответствует ни какому протоколу")
     }
   }

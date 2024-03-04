@@ -8,7 +8,7 @@ import net.tcp._
 import play.api.inject.{ApplicationLifecycle, Injector}
 import play.api.libs.json.{JsValue, Json}
 import play.api.{Application, Configuration, Logger, Play}
-import services.businesslogic.dispatchers.PhisicalObject.CardResponse
+import services.businesslogic.dispatchers.notyped.PhisicalObject.CardResponse
 import services.businesslogic.managers.PhisicalObjectsManager
 
 import java.util.Locale

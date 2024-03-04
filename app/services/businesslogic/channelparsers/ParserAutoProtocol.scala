@@ -5,6 +5,7 @@ import models.extractors.Protocol2WithCard.WithCard
 import models.extractors.{NoCardOrWithCard, Protocol2NoCard, Protocol2WithCard}
 import play.api.Logger
 import services.businesslogic.channelparsers.Parser.PatternInfo
+import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.PhisicalObjectEvent
 
 import javax.inject.Inject
 
@@ -62,7 +63,9 @@ class ParserAutoProtocol @Inject()(implicit ex: CustomBlockingExecutionContext) 
     }
   }
 
-  private def sendProtocolObjectToDispatcher(protocolObj: NoCardOrWithCard): Unit = {
+  private def sendProtocolObjectToDispatcher(protocolObj: NoCardOrWithCard with PhisicalObjectEvent ): Unit = {
+    //getDispatcher
+    //getDispatcherT
     getDispatcher match {
       case Some(dispatcherRef) => dispatcherRef ! protocolObj
       case None => logger.error("Не заполнен диспетчер физического объекта")

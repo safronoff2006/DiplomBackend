@@ -12,7 +12,7 @@ import play.api.inject.Injector
 import play.api.libs.concurrent.AkkaGuiceSupport
 import services.businesslogic.channelparsers.Parser.PatternInfo
 import services.businesslogic.channelparsers.{Parser, ParserAutoProtocol, ParserRailProtocol}
-import services.businesslogic.dispatchers.{RailWeighbridge, RailWeighbridgeBuilder, TruckScale, TruckScaleBuilder}
+import services.businesslogic.dispatchers.notyped.{RailWeighbridge, RailWeighbridgeBuilder, TruckScale, TruckScaleBuilder}
 import services.businesslogic.managers.PhisicalObjectsManager
 import services.businesslogic.statemachines.{AutoStateMachine, RailStateMachine, StateMachine}
 import services.start.{ApplicationStartDebug, InterfaceStart}

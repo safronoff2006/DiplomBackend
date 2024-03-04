@@ -8,7 +8,7 @@ import com.google.inject.assistedinject.Assisted
 import net.tcp.TcpServer.createActor
 import play.api.Logger
 import play.api.libs.concurrent.InjectedActorSupport
-import services.businesslogic.dispatchers.PhisicalObject._
+import services.businesslogic.dispatchers.notyped.PhisicalObject._
 import services.businesslogic.managers.PhisicalObjectsManager
 
 import java.net.InetSocketAddress
