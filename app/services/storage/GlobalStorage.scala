@@ -1,7 +1,13 @@
 package services.storage
 
+import akka.actor.typed.{ActorRef, ActorSystem}
 import play.api.Logger
+import services.businesslogic.channelparsers.Parser
+import services.businesslogic.channelparsers.Parser.PatternInfo
+import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.PhisicalObjectEvent
+import services.businesslogic.statemachines.StateMachine
 
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Singleton
 
 @Singleton
@@ -31,5 +37,30 @@ class GlobalStorage {
   }
 
 
+
+}
+
+
+object GlobalStorage {
+
+  private var optSys: Option[ActorSystem[MainBehaviorCommand]] = None
+
+  trait MainBehaviorCommand
+  case class CreateTruckScaleDispatcher(parser: Parser, stateMachine: StateMachine, mainProtocolPattern: PatternInfo, id: String) extends MainBehaviorCommand
+
+
+  def getValidNames: List[String] = List("RailWeighbridge","TruckScale[1]", "TruckScale[2]", "TruckScale[3]")
+
+  def setSys(sys: ActorSystem[MainBehaviorCommand]): Unit = {
+    optSys = Some(sys)
+  }
+
+  def getSys: Option[ActorSystem[MainBehaviorCommand]] = optSys
+
+  private val dispatchersMap = new ConcurrentHashMap[String, ActorRef[PhisicalObjectEvent]]()
+
+  def setRef(id: String, ref: ActorRef[PhisicalObjectEvent]) = dispatchersMap.put(id,ref)
+
+  def getRef(id:String): Option[ActorRef[PhisicalObjectEvent]] = if (dispatchersMap.containsKey(id)) Some(dispatchersMap.get(id)) else None
 
 }

@@ -8,7 +8,7 @@ import net.tcp._
 import play.api.inject.{ApplicationLifecycle, Injector}
 import play.api.libs.json.{JsValue, Json}
 import play.api.{Application, Configuration, Logger, Play}
-import services.businesslogic.dispatchers.notyped.PhisicalObject.CardResponse
+import services.businesslogic.dispatchers.typed.PhisicalObjectTyped
 import services.businesslogic.managers.PhisicalObjectsManager
 
 import java.util.Locale
@@ -50,6 +50,7 @@ class ApplicationStartDebug @Inject()(lifecycle: ApplicationLifecycle, environme
       }
     }
   )
+
   logger.info("Корневой путь " + environment.rootPath.getPath)
 
   //
@@ -136,10 +137,12 @@ class ApplicationStartDebug @Inject()(lifecycle: ApplicationLifecycle, environme
           phisicalObjectOpt match {
             case None =>
             case Some(po) =>
-              val dispatcherOpt = dispatchers.getPhisicalObjectByName(po)
+              //val dispatcherOpt = dispatchers.getPhisicalObjectByName(po)
+              val dispatcherOpt = dispatchers.getPhisicalObjectByNameT(po)
               dispatcherOpt match {
                 case None =>
-                case Some(dispatcher) => dispatcher !   CardResponse(po)
+                //case Some(dispatcher) => dispatcher !   CardResponse(po)
+                case Some(dispatcher) => dispatcher !   PhisicalObjectTyped.CardResponse(po)
               }
           }
 
@@ -168,6 +171,11 @@ class ApplicationStartDebug @Inject()(lifecycle: ApplicationLifecycle, environme
         println(s + " " + d.utf8String)
   }
 
+
+
+
+
+
   /*
   private var client:ActorRef = _
   private val taskClient: java.lang.Runnable = () => {
@@ -190,6 +198,17 @@ class ApplicationStartDebug @Inject()(lifecycle: ApplicationLifecycle, environme
   */
 
 
+}
+
+
+
+
+
+object ApplicationStartDebug {
+
+
+
 
 }
+
 

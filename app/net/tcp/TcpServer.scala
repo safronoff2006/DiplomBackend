@@ -1,6 +1,6 @@
 package net.tcp
 
-import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import akka.actor.{Actor, ActorRef, ActorSystem, Props, typed}
 import akka.event.Logging
 import akka.io.{IO, Tcp}
 import akka.util.ByteString
@@ -8,7 +8,8 @@ import com.google.inject.assistedinject.Assisted
 import net.tcp.TcpServer.createActor
 import play.api.Logger
 import play.api.libs.concurrent.InjectedActorSupport
-import services.businesslogic.dispatchers.notyped.PhisicalObject._
+
+import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.{PhisicalObjectEvent, _}
 import services.businesslogic.managers.PhisicalObjectsManager
 
 import java.net.InetSocketAddress
@@ -31,12 +32,16 @@ class TcpServer @Inject()(@Named("HostIp") address: String,
   import context.system
 
   private val log = Logging(context.system, this)
-
+  private val phisicalOpt: Option[typed.ActorRef[PhisicalObjectEvent]] = manager.getPhisicalObjectByNameT(params.phisicalObject)
   log.info(s"Параметры TCP Сервера: $address  ${params.port}  ${params.id}  ${params.phisicalObject}  ${params.channelName}")
-  private val phisicalOpt: Option[ActorRef] = manager.getPhisicalObjectByName(params.phisicalObject)
+
+    //manager.getPhisicalObjectByName(params.phisicalObject)
 
   phisicalOpt match {
-    case Some(ph) => ph ! PrintNameEvent(s"TCP серверу ${params.id} на порту ${params.port} ")
+    //case Some(ph) => ph ! PrintNameEvent(s"TCP серверу ${params.id} на порту ${params.port} ")
+    case Some(ph) =>
+      log.info(s"TCP серверу ${params.id} на порту ${params.port}   - to actor $ph")
+      ph ! PrintNameEvent(s"TCP серверу ${params.id} на порту ${params.port} ")
     case None => log.error(s"Не найден физичяеский объект по имени ${params.phisicalObject}")
   }
 
@@ -99,7 +104,8 @@ class TcpServer @Inject()(@Named("HostIp") address: String,
 class SimplisticHandler(manager: ActorRef,
                         connection: ActorRef,
                         local: InetSocketAddress,
-                        phisicalOpt: Option[ActorRef],
+                        //phisicalOpt: Option[ActorRef],
+                        phisicalOpt: Option[typed.ActorRef[PhisicalObjectEvent]],
                         params: TcpServerParams) extends Actor {
 
   import Tcp._

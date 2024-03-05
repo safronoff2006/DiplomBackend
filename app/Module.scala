@@ -1,4 +1,5 @@
-import akka.actor.ActorRef
+import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
 import com.google.inject.name.Names
 import com.google.inject.{AbstractModule, Provides}
 import com.typesafe.config.ConfigFactory
@@ -12,22 +13,60 @@ import play.api.inject.Injector
 import play.api.libs.concurrent.AkkaGuiceSupport
 import services.businesslogic.channelparsers.Parser.PatternInfo
 import services.businesslogic.channelparsers.{Parser, ParserAutoProtocol, ParserRailProtocol}
-import services.businesslogic.dispatchers.notyped.{RailWeighbridge, RailWeighbridgeBuilder, TruckScale, TruckScaleBuilder}
+import services.businesslogic.dispatchers.notyped.{RailWeighbridge, RailWeighbridgeBuilder}
+import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.PhisicalObjectEvent
+import services.businesslogic.dispatchers.typed.{TruckScaleTyped, TruckScaleWrapper}
 import services.businesslogic.managers.PhisicalObjectsManager
 import services.businesslogic.statemachines.{AutoStateMachine, RailStateMachine, StateMachine}
 import services.start.{ApplicationStartDebug, InterfaceStart}
+import services.storage.GlobalStorage._
 import services.storage.{GlobalStorage, StateMachinesStorage, TcpStorage}
 
 import javax.inject.Named
-
+import scala.annotation.tailrec
 
 
 class Module  extends AbstractModule  with AkkaGuiceSupport {
+
+
+
+  object MainBehavior {
+    def apply(): Behavior[MainBehaviorCommand] =
+      Behaviors.setup { context =>
+        context.log.info("Creation of the main Behavior")
+
+        Behaviors.receiveMessage { msg =>
+          msg match {
+            case CreateTruckScaleDispatcher(parser, stateMachine, mainProtocolPattern, id) =>
+              val actorDispatcherBehavior: Behavior[PhisicalObjectEvent] = Behaviors.setup[PhisicalObjectEvent] { ctx =>
+                new TruckScaleTyped(ctx, parser, stateMachine, mainProtocolPattern)
+              }
+
+             val ref: ActorRef[PhisicalObjectEvent] =  context.spawn(actorDispatcherBehavior, id )
+              context.log.info(s"Create actorDispatcher $id")
+              GlobalStorage.setRef(id,ref)
+              Behaviors.same
+            case _ => Behaviors.same
+          }
+        }
+      }
+  }
+
+  private def createMainContext = {
+    implicit val sys: akka.actor.typed.ActorSystem[MainBehaviorCommand] = akka.actor.typed.ActorSystem(MainBehavior(), "main")
+    sys
+  }
+
+
   private val logger: Logger = Logger(this.getClass)
   logger.info("Загружен модуль IoC контейнера")
+  val sys: ActorSystem[MainBehaviorCommand] =  createMainContext
+  GlobalStorage.setSys(sys)
+
 
   override def configure(): Unit = {
     logger.info("Выполняется конфигурация модуля Guice")
+
 
     //привязка таймаута обработки карты
     bind(classOf[Long]).annotatedWith(Names.named("CardTimeout")).toInstance(
@@ -97,6 +136,7 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
 
 
     //привязка сервисов
+    bind(classOf[InterfaceStart]).to(classOf[ApplicationStartDebug]).asEagerSingleton()
     bind(classOf[GlobalStorage]).asEagerSingleton()
     bind(classOf[StateMachinesStorage]).asEagerSingleton()
 
@@ -108,11 +148,15 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
 
     bindActorFactory[TcpServer, TcpServer.BuildFactory]
 
-    bindActorFactory[TruckScale,TruckScale.BuildFactory]
+    //новое
+    bind(classOf[TruckScaleWrapper]).asEagerSingleton()
+
+
+    //bindActorFactory[TruckScale,TruckScale.BuildFactory] //убрать потоом
     bindActorFactory[RailWeighbridge,RailWeighbridge.BuildFactory]
 
     bind(classOf[TcpServerBuilder]).asEagerSingleton()
-    bind(classOf[TruckScaleBuilder]).asEagerSingleton()
+    //bind(classOf[TruckScaleBuilder]).asEagerSingleton() //убрать потом
     bind(classOf[RailWeighbridgeBuilder]).asEagerSingleton()
     bind(classOf[PhisicalObjectsManager]).asEagerSingleton()
 
@@ -120,23 +164,47 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
 
     bind(classOf[NetWorker]).asEagerSingleton()
     bind(classOf[UdpServerManager]).asEagerSingleton()
-    bind(classOf[InterfaceStart]).to(classOf[ApplicationStartDebug]).asEagerSingleton()
+
+
+
+
   }
+
 
   //провайдеры акторов диспетчеров для ЖД и автомобильных весов
   @Provides
   @Named("RailWeighbridge")
-  def getRailWeighbridgeActor(injector: Injector): ActorRef = {
+  def getRailWeighbridgeActor(injector: Injector): akka.actor.ActorRef = {
     val builder = injector.instanceOf[RailWeighbridgeBuilder]
     builder.createActor()
   }
 
+
   @Provides
   @Named("TruckScale")
-  def getTruckScaleActor(injector: Injector): ActorRef = {
-    val builder = injector.instanceOf[TruckScaleBuilder]
-    builder.createActor()
+  def getTruckScaleActor(injector: Injector): akka.actor.typed.ActorRef[PhisicalObjectEvent] = {
+    val builder = injector.instanceOf[TruckScaleWrapper]
+    val id = builder.create()
+
+    @tailrec
+    def getRef(id: String): ActorRef[PhisicalObjectEvent] = {
+      val optref: Option[ActorRef[PhisicalObjectEvent]] = GlobalStorage.getRef(id)
+      optref match {
+        case Some(ref) => ref
+        case None => getRef(id)
+      }
+    }
+
+    getRef(id)
+
   }
+
+
+
+//  def getTruckScaleActor(injector: Injector): ActorRef = {
+//    val builder = injector.instanceOf[TruckScaleBuilder]
+//    builder.createActor()
+//  }
 
   //провайдеры кортежей паттернов для парсеров протоколов
   @Provides
