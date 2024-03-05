@@ -47,7 +47,7 @@ object GlobalStorage {
 
   trait MainBehaviorCommand
   case class CreateTruckScaleDispatcher(parser: Parser, stateMachine: StateMachine, mainProtocolPattern: PatternInfo, id: String) extends MainBehaviorCommand
-
+  case class CreateRailWeighbridgeDispatcher(parser: Parser, stateMachine: StateMachine, mainProtocolPattern: PatternInfo, id: String) extends MainBehaviorCommand
 
   def getValidNames: List[String] = List("RailWeighbridge","TruckScale[1]", "TruckScale[2]", "TruckScale[3]")
 

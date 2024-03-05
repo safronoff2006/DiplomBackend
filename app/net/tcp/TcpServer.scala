@@ -35,12 +35,11 @@ class TcpServer @Inject()(@Named("HostIp") address: String,
   private val phisicalOpt: Option[typed.ActorRef[PhisicalObjectEvent]] = manager.getPhisicalObjectByNameT(params.phisicalObject)
   log.info(s"Параметры TCP Сервера: $address  ${params.port}  ${params.id}  ${params.phisicalObject}  ${params.channelName}")
 
-    //manager.getPhisicalObjectByName(params.phisicalObject)
+
 
   phisicalOpt match {
-    //case Some(ph) => ph ! PrintNameEvent(s"TCP серверу ${params.id} на порту ${params.port} ")
     case Some(ph) =>
-      log.info(s"TCP серверу ${params.id} на порту ${params.port}   - to actor $ph")
+      log.info(s"TCP сервер ${params.id} на порту ${params.port} - to actor $ph")
       ph ! PrintNameEvent(s"TCP серверу ${params.id} на порту ${params.port} ")
     case None => log.error(s"Не найден физичяеский объект по имени ${params.phisicalObject}")
   }
@@ -76,9 +75,6 @@ class TcpServer @Inject()(@Named("HostIp") address: String,
       case None => log.warning(s"Соединение не существует. Невозможно отправить сообщение $m")
     }
 
-
-
-
   }
 
   @tailrec
@@ -101,10 +97,9 @@ class TcpServer @Inject()(@Named("HostIp") address: String,
 
 }
 
-class SimplisticHandler(manager: ActorRef,
+ class SimplisticHandler(manager: ActorRef,
                         connection: ActorRef,
                         local: InetSocketAddress,
-                        //phisicalOpt: Option[ActorRef],
                         phisicalOpt: Option[typed.ActorRef[PhisicalObjectEvent]],
                         params: TcpServerParams) extends Actor {
 
@@ -119,11 +114,8 @@ class SimplisticHandler(manager: ActorRef,
   }
 
   def receive: Receive = {
-
-
     case Received(data) =>
       val strEcho = "Эхо:    " + data.utf8String.trim + "\n"
-      //sender() ! Write(ByteString(strEcho)) //Эхо
 
       val strData = data.utf8String.trim
 
@@ -138,8 +130,6 @@ class SimplisticHandler(manager: ActorRef,
       log.info(s"Соединение $connection для порта ${local.getPort} закрыто")
       manager ! ClearConnection
       context.stop(self)
-
-
 
 
   }

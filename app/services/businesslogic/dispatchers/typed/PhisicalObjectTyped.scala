@@ -27,6 +27,9 @@ abstract class PhisicalObjectWraper(parser: Parser,
                                     stateMachine: StateMachine,
                                     mainProtocolPattern: PatternInfo)   {
 
+
+
+
 }
 
 

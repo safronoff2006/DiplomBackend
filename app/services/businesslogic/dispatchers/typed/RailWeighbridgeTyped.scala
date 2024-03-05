@@ -1,34 +1,32 @@
 package services.businesslogic.dispatchers.typed
 
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorSystem, Behavior}
-import models.extractors.Protocol2NoCard.NoCard
-import models.extractors.Protocol2WithCard.WithCard
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
+import models.extractors.ProtocolRail.RailWeight
 import play.api.Logger
 import services.businesslogic.channelparsers.Parser
 import services.businesslogic.channelparsers.Parser.PatternInfo
 import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.PhisicalObjectEvent
 import services.businesslogic.statemachines.StateMachine
 import services.storage.GlobalStorage
-import services.storage.GlobalStorage.{CreateTruckScaleDispatcher, MainBehaviorCommand}
+import services.storage.GlobalStorage.{CreateRailWeighbridgeDispatcher, MainBehaviorCommand}
 
 import javax.inject.{Inject, Named}
 
-object TruckScaleTyped {
+object RailWeighbridgeTyped {
 
 }
 
-
-class TruckScaleWrapper @Inject()
-(@Named("AutoParser") parser: Parser,
- @Named("AutoStateMachine") stateMachine: StateMachine,
- @Named("AutoMainPatternInfo") mainProtocolPattern: PatternInfo)
+class RailWeighbridgeWrapper @Inject() (@Named("RailParser") parser: Parser,
+                                        @Named("RailStateMachine") stateMachine: StateMachine,
+                                        @Named("RailsPatternInfo") mainProtocolPattern: PatternInfo)
   extends PhisicalObjectWraper(parser: Parser,
-    stateMachine: StateMachine,
-    mainProtocolPattern: PatternInfo) {
+  stateMachine: StateMachine,
+  mainProtocolPattern: PatternInfo) {
 
   private val logger: Logger = Logger(this.getClass)
-  logger.info("Создан TruckScaleWrapper")
+  logger.info("Создан RailWeighbridgeWrapper")
+
 
   val optsys: Option[ActorSystem[MainBehaviorCommand]] = GlobalStorage.getSys
   val sys = optsys match {
@@ -42,44 +40,38 @@ class TruckScaleWrapper @Inject()
 
   def create(): String = {
     val id: String = java.util.UUID.randomUUID.toString
-    sys ! CreateTruckScaleDispatcher(parser, stateMachine, mainProtocolPattern, id)
+    sys ! CreateRailWeighbridgeDispatcher(parser, stateMachine, mainProtocolPattern, id)
     id
   }
+
 }
 
-
-class TruckScaleTyped(context: ActorContext[PhisicalObjectEvent], parser: Parser, stateMachine: StateMachine,
-                      mainProtocolPattern: PatternInfo)
+class RailWeighbridgeTyped(context: ActorContext[PhisicalObjectEvent], parser: Parser, stateMachine: StateMachine,
+                           mainProtocolPattern: PatternInfo)
   extends PhisicalObjectTyped(context, parser: Parser, stateMachine: StateMachine, mainProtocolPattern: PatternInfo) {
 
-
-  log.info(s"Создан диспетчер TruckScale   ${context.self}")
+  log.info(s"Создан диспетчер RailWeighbridge  ${context.self}")
   parser.setDispatcherT(context.self)
   parser.setPattern(mainProtocolPattern)
 
   override def onMessage(msg: PhisicalObjectEvent): Behavior[PhisicalObjectEvent] = {
     msg match {
-      case PhisicalObjectTyped.CardResponse(phisicalObject) => stateMachine.cardResponse(phisicalObject)
-        Behaviors.same
       case PhisicalObjectTyped.NameEvent(n: String) =>
         setName(n)
         log.info(s"Диспетчер именован: $name")
         stateMachine.name = n
         Behaviors.same
+
       case PhisicalObjectTyped.PrintNameEvent(prefix) => log.info(s"$prefix назначен диспетчер физических объектов $name")
         Behaviors.same
+
       case obj: PhisicalObjectTyped.TcpMessageEvent => parser.sendToParser(obj.message)
         Behaviors.same
-      case obj: NoCard => stateMachine.protocolMessage(obj)
+
+      case obj:RailWeight => stateMachine.protocolMessage(obj)
         Behaviors.same
-      case obj: WithCard => stateMachine.protocolMessage(obj)
-        Behaviors.same
-      case _ => Behaviors.same
+
+      case _ =>  Behaviors.same
     }
-
   }
-
 }
-
-
-

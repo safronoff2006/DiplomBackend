@@ -63,7 +63,7 @@ class ParserRailProtocol @Inject() (implicit ex:CustomBlockingExecutionContext) 
   private def sendProtocolObjectToDispatcher(protocolObj: NoCardOrWithCard with PhisicalObjectEvent): Unit = {
     //getDispatcher
     //getDispatcherT
-    getDispatcher match {
+    getDispatcherT match {
       case Some(dispatcherRef) => dispatcherRef ! protocolObj
       case None => logger.error("Не заполнен диспетчер физического объекта")
     }

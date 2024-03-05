@@ -13,9 +13,8 @@ import play.api.inject.Injector
 import play.api.libs.concurrent.AkkaGuiceSupport
 import services.businesslogic.channelparsers.Parser.PatternInfo
 import services.businesslogic.channelparsers.{Parser, ParserAutoProtocol, ParserRailProtocol}
-import services.businesslogic.dispatchers.notyped.{RailWeighbridge, RailWeighbridgeBuilder}
 import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.PhisicalObjectEvent
-import services.businesslogic.dispatchers.typed.{TruckScaleTyped, TruckScaleWrapper}
+import services.businesslogic.dispatchers.typed.{RailWeighbridgeTyped, RailWeighbridgeWrapper, TruckScaleTyped, TruckScaleWrapper}
 import services.businesslogic.managers.PhisicalObjectsManager
 import services.businesslogic.statemachines.{AutoStateMachine, RailStateMachine, StateMachine}
 import services.start.{ApplicationStartDebug, InterfaceStart}
@@ -46,6 +45,17 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
               context.log.info(s"Create actorDispatcher $id")
               GlobalStorage.setRef(id,ref)
               Behaviors.same
+
+            case   CreateRailWeighbridgeDispatcher(parser, stateMachine, mainProtocolPattern, id) =>
+              val actorDispatcherBehavior: Behavior[PhisicalObjectEvent] = Behaviors.setup[PhisicalObjectEvent] { ctx =>
+                new RailWeighbridgeTyped(ctx, parser, stateMachine, mainProtocolPattern)
+              }
+
+             val ref: ActorRef[PhisicalObjectEvent] = context.spawn(actorDispatcherBehavior, id)
+              context.log.info(s"Create actorDispatcher $id")
+              GlobalStorage.setRef(id, ref)
+              Behaviors.same
+
             case _ => Behaviors.same
           }
         }
@@ -148,16 +158,17 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
 
     bindActorFactory[TcpServer, TcpServer.BuildFactory]
 
-    //новое
-    bind(classOf[TruckScaleWrapper]).asEagerSingleton()
+
 
 
     //bindActorFactory[TruckScale,TruckScale.BuildFactory] //убрать потоом
-    bindActorFactory[RailWeighbridge,RailWeighbridge.BuildFactory]
+    //bindActorFactory[RailWeighbridge,RailWeighbridge.BuildFactory]
 
     bind(classOf[TcpServerBuilder]).asEagerSingleton()
+
     //bind(classOf[TruckScaleBuilder]).asEagerSingleton() //убрать потом
-    bind(classOf[RailWeighbridgeBuilder]).asEagerSingleton()
+    //bind(classOf[RailWeighbridgeBuilder]).asEagerSingleton()
+
     bind(classOf[PhisicalObjectsManager]).asEagerSingleton()
 
     bind(classOf[TcpStorage]).asEagerSingleton()
@@ -170,22 +181,7 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
 
   }
 
-
-  //провайдеры акторов диспетчеров для ЖД и автомобильных весов
-  @Provides
-  @Named("RailWeighbridge")
-  def getRailWeighbridgeActor(injector: Injector): akka.actor.ActorRef = {
-    val builder = injector.instanceOf[RailWeighbridgeBuilder]
-    builder.createActor()
-  }
-
-
-  @Provides
-  @Named("TruckScale")
-  def getTruckScaleActor(injector: Injector): akka.actor.typed.ActorRef[PhisicalObjectEvent] = {
-    val builder = injector.instanceOf[TruckScaleWrapper]
-    val id = builder.create()
-
+  object GetRefWhenExist {
     @tailrec
     def getRef(id: String): ActorRef[PhisicalObjectEvent] = {
       val optref: Option[ActorRef[PhisicalObjectEvent]] = GlobalStorage.getRef(id)
@@ -194,17 +190,30 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
         case None => getRef(id)
       }
     }
-
-    getRef(id)
-
   }
 
 
 
-//  def getTruckScaleActor(injector: Injector): ActorRef = {
-//    val builder = injector.instanceOf[TruckScaleBuilder]
-//    builder.createActor()
-//  }
+
+  //провайдеры акторов диспетчеров для ЖД и автомобильных весов
+  @Provides
+  @Named("RailWeighbridge")
+  def getRailWeighbridgeActor(injector: Injector) = {
+    val builder = injector.instanceOf[RailWeighbridgeWrapper]
+    val id = builder.create()
+    GetRefWhenExist.getRef(id)
+  }
+
+
+  @Provides
+  @Named("TruckScale")
+  def getTruckScaleActor(injector: Injector): akka.actor.typed.ActorRef[PhisicalObjectEvent] = {
+    val builder = injector.instanceOf[TruckScaleWrapper]
+    val id = builder.create()
+    GetRefWhenExist.getRef(id)
+
+  }
+
 
   //провайдеры кортежей паттернов для парсеров протоколов
   @Provides
