@@ -20,7 +20,7 @@ class ParserAutoProtocolWraper() extends ParserWraper {
   logger.info("Создан ParserAutoProtocolWraper")
 
   val optsys: Option[ActorSystem[MainBehaviorCommand]] = GlobalStorage.getSys
-  val sys = optsys match {
+  val sys: ActorSystem[MainBehaviorCommand] = optsys match {
     case Some(v) =>
       logger.info("Найден ActorSystem[MainBehaviorCommand]")
       v
@@ -97,7 +97,7 @@ class ParserAutoProtocolTyped(context: ActorContext[ParserCommand]) extends Pars
   }
 
 
-  override def setPattern(p: PatternInfo) = {
+  override def setPattern(p: PatternInfo): Unit = {
     super.setPattern(p)
     protocolPrefixes = p._1 match {
       case "SCALE_DATA_PATTERN_PROTOCOL2" => List('v', 'V')
