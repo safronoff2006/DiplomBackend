@@ -2,8 +2,8 @@ package services.businesslogic.dispatchers.notyped
 
 import akka.actor.Actor
 import akka.event.{Logging, LoggingAdapter}
-import services.businesslogic.channelparsers.Parser
-import services.businesslogic.channelparsers.Parser.PatternInfo
+import services.businesslogic.channelparsers.oldrealisation.Parser.PatternInfo
+import services.businesslogic.channelparsers.oldrealisation.Parser
 import services.businesslogic.statemachines.StateMachine
 
 

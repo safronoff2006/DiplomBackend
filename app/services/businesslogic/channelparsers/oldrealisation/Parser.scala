@@ -1,10 +1,10 @@
-package services.businesslogic.channelparsers
+package services.businesslogic.channelparsers.oldrealisation
 
 //старое нетепизированное
 
 //новое типизированое
 import executioncontexts.CustomBlockingExecutionContext
-import services.businesslogic.channelparsers.Parser.PatternInfo
+import services.businesslogic.channelparsers.oldrealisation.Parser.PatternInfo
 import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.PhisicalObjectEvent
 
 import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue}

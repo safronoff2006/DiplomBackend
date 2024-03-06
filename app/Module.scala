@@ -11,8 +11,9 @@ import net.udp.UdpServerManager
 import play.api.Logger
 import play.api.inject.Injector
 import play.api.libs.concurrent.AkkaGuiceSupport
-import services.businesslogic.channelparsers.Parser.PatternInfo
-import services.businesslogic.channelparsers.{Parser, ParserAutoProtocol, ParserRailProtocol}
+import services.businesslogic.channelparsers.oldrealisation.Parser.PatternInfo
+import services.businesslogic.channelparsers.typed.ParserTyped.ParserCommand
+import services.businesslogic.channelparsers.typed._
 import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.PhisicalObjectEvent
 import services.businesslogic.dispatchers.typed.{RailWeighbridgeTyped, RailWeighbridgeWrapper, TruckScaleTyped, TruckScaleWrapper}
 import services.businesslogic.managers.PhisicalObjectsManager
@@ -29,35 +30,53 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
 
 
 
-  object MainBehavior {
+  private object MainBehavior {
     def apply(): Behavior[MainBehaviorCommand] =
       Behaviors.setup { context =>
         context.log.info("Creation of the main Behavior")
 
-        Behaviors.receiveMessage { msg =>
-          msg match {
-            case CreateTruckScaleDispatcher(parser, stateMachine, mainProtocolPattern, id) =>
-              val actorDispatcherBehavior: Behavior[PhisicalObjectEvent] = Behaviors.setup[PhisicalObjectEvent] { ctx =>
-                new TruckScaleTyped(ctx, parser, stateMachine, mainProtocolPattern)
-              }
+        Behaviors.receiveMessage {
+          case CreateTruckScaleDispatcher(parser, stateMachine, mainProtocolPattern, id) =>
+            val actorDispatcherBehavior: Behavior[PhisicalObjectEvent] = Behaviors.setup[PhisicalObjectEvent] { ctx =>
+              new TruckScaleTyped(ctx, parser, stateMachine, mainProtocolPattern)
+            }
 
-             val ref: ActorRef[PhisicalObjectEvent] =  context.spawn(actorDispatcherBehavior, id )
-              context.log.info(s"Create actorDispatcher $id")
-              GlobalStorage.setRef(id,ref)
-              Behaviors.same
+            val ref: ActorRef[PhisicalObjectEvent] = context.spawn(actorDispatcherBehavior, id)
+            context.log.info(s"Create actorDispatcher $id")
+            GlobalStorage.setRefPOE(id, ref)
+            Behaviors.same
 
-            case   CreateRailWeighbridgeDispatcher(parser, stateMachine, mainProtocolPattern, id) =>
-              val actorDispatcherBehavior: Behavior[PhisicalObjectEvent] = Behaviors.setup[PhisicalObjectEvent] { ctx =>
-                new RailWeighbridgeTyped(ctx, parser, stateMachine, mainProtocolPattern)
-              }
+          case CreateRailWeighbridgeDispatcher(parser, stateMachine, mainProtocolPattern, id) =>
+            val actorDispatcherBehavior: Behavior[PhisicalObjectEvent] = Behaviors.setup[PhisicalObjectEvent] { ctx =>
+              new RailWeighbridgeTyped(ctx, parser, stateMachine, mainProtocolPattern)
+            }
 
-             val ref: ActorRef[PhisicalObjectEvent] = context.spawn(actorDispatcherBehavior, id)
-              context.log.info(s"Create actorDispatcher $id")
-              GlobalStorage.setRef(id, ref)
-              Behaviors.same
+            val ref: ActorRef[PhisicalObjectEvent] = context.spawn(actorDispatcherBehavior, id)
+            context.log.info(s"Create actorDispatcher $id")
+            GlobalStorage.setRefPOE(id, ref)
+            Behaviors.same
 
-            case _ => Behaviors.same
-          }
+          case CreateAutoProtocolParser(id) =>
+            val actorParserBehavior: Behavior[ParserCommand] = Behaviors.setup[ParserCommand] { ctx =>
+              new ParserAutoProtocolTyped(ctx)
+            }
+
+            val ref = context.spawn(actorParserBehavior, id)
+            context.log.info(s"Create actorProtocol $id")
+            GlobalStorage.setRefParser(id, ref)
+            Behaviors.same
+
+          case CreateRailProtocolParser(id) =>
+            val actorParserBehavior: Behavior[ParserCommand] = Behaviors.setup[ParserCommand] { ctx =>
+              new ParserRailProtocolTyped(ctx)
+            }
+
+            val ref = context.spawn(actorParserBehavior, id)
+            context.log.info(s"Create actorProtocol $id")
+            GlobalStorage.setRefParser(id, ref)
+            Behaviors.same
+
+          case _ => Behaviors.same
         }
       }
   }
@@ -150,8 +169,11 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
     bind(classOf[GlobalStorage]).asEagerSingleton()
     bind(classOf[StateMachinesStorage]).asEagerSingleton()
 
-    bind(classOf[Parser]).annotatedWith(Names.named("AutoParser")).to(classOf[ParserAutoProtocol])
-    bind(classOf[Parser]).annotatedWith(Names.named("RailParser")).to(classOf[ParserRailProtocol])
+    //bind(classOf[Parser]).annotatedWith(Names.named("AutoParser")).to(classOf[ParserAutoProtocol])
+    bind(classOf[ParserWraper]).annotatedWith(Names.named("AutoParserW")).to(classOf[ParserAutoProtocolWraper])
+
+    //bind(classOf[Parser]).annotatedWith(Names.named("RailParser")).to(classOf[ParserRailProtocol])
+    bind(classOf[ParserWraper]).annotatedWith(Names.named("RailParserW")).to(classOf[ParserRailProtokolWraper])
 
     bind(classOf[StateMachine]).annotatedWith(Names.named("AutoStateMachine")).to(classOf[AutoStateMachine])
     bind(classOf[StateMachine]).annotatedWith(Names.named("RailStateMachine")).to(classOf[RailStateMachine])
@@ -181,13 +203,22 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
 
   }
 
-  object GetRefWhenExist {
+  private object GetRefWhenExist {
     @tailrec
-    def getRef(id: String): ActorRef[PhisicalObjectEvent] = {
-      val optref: Option[ActorRef[PhisicalObjectEvent]] = GlobalStorage.getRef(id)
+    def getRefPOE(id: String): ActorRef[PhisicalObjectEvent] = {
+      val optref: Option[ActorRef[PhisicalObjectEvent]] = GlobalStorage.getRefPOE(id)
       optref match {
         case Some(ref) => ref
-        case None => getRef(id)
+        case None => getRefPOE(id)
+      }
+    }
+
+    @tailrec
+    def getRefParser(id: String): ActorRef[ParserCommand] = {
+      val optref = GlobalStorage.getRefParser(id)
+      optref match {
+        case Some(ref) => ref
+        case None => getRefParser(id)
       }
     }
   }
@@ -198,20 +229,36 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
   //провайдеры акторов диспетчеров для ЖД и автомобильных весов
   @Provides
   @Named("RailWeighbridge")
-  def getRailWeighbridgeActor(injector: Injector) = {
+  def getRailWeighbridgeActor(injector: Injector): ActorRef[PhisicalObjectEvent] = {
     val builder = injector.instanceOf[RailWeighbridgeWrapper]
     val id = builder.create()
-    GetRefWhenExist.getRef(id)
+    GetRefWhenExist.getRefPOE(id)
   }
 
 
   @Provides
   @Named("TruckScale")
-  def getTruckScaleActor(injector: Injector): akka.actor.typed.ActorRef[PhisicalObjectEvent] = {
+  def getTruckScaleActor(injector: Injector): ActorRef[PhisicalObjectEvent] = {
     val builder = injector.instanceOf[TruckScaleWrapper]
     val id = builder.create()
-    GetRefWhenExist.getRef(id)
+    GetRefWhenExist.getRefPOE(id)
 
+  }
+
+  //провайдеры акторов парсеров
+
+  @Provides
+  @Named("AutoParserA")
+  def getAutoProtocolParserActor(@Named("AutoParserW") wraper: ParserWraper): ActorRef[ParserCommand] = {
+    val id = wraper.create()
+    GetRefWhenExist.getRefParser(id)
+  }
+
+  @Provides
+  @Named("RailParserA")
+  def getRailProtocolParserActor(@Named("RailParserW") wraper: ParserWraper): ActorRef[ParserCommand] = {
+    val id = wraper.create()
+    GetRefWhenExist.getRefParser(id)
   }
 
 

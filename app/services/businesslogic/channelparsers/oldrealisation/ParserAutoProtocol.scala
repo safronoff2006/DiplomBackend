@@ -1,10 +1,10 @@
-package services.businesslogic.channelparsers
+package services.businesslogic.channelparsers.oldrealisation
 
 import executioncontexts.CustomBlockingExecutionContext
 import models.extractors.Protocol2WithCard.WithCard
 import models.extractors.{NoCardOrWithCard, Protocol2NoCard, Protocol2WithCard}
 import play.api.Logger
-import services.businesslogic.channelparsers.Parser.PatternInfo
+import services.businesslogic.channelparsers.oldrealisation.Parser.PatternInfo
 import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.PhisicalObjectEvent
 
 import javax.inject.Inject

@@ -1,10 +1,10 @@
 package services.businesslogic.dispatchers.typed
 
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext}
-import akka.actor.typed.{Behavior, PostStop, Signal}
+import akka.actor.typed.{ActorRef, Behavior, PostStop, Signal}
 import org.slf4j.Logger
-import services.businesslogic.channelparsers.Parser
-import services.businesslogic.channelparsers.Parser.PatternInfo
+import services.businesslogic.channelparsers.oldrealisation.Parser.PatternInfo
+import services.businesslogic.channelparsers.typed.ParserTyped.ParserCommand
 import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.PhisicalObjectEvent
 import services.businesslogic.statemachines.StateMachine
 
@@ -23,7 +23,8 @@ object PhisicalObjectTyped {
 
 }
 
-abstract class PhisicalObjectWraper(parser: Parser,
+abstract class PhisicalObjectWraper(//parser: Parser,
+                                    parser: ActorRef[ParserCommand],
                                     stateMachine: StateMachine,
                                     mainProtocolPattern: PatternInfo)   {
 
@@ -33,7 +34,9 @@ abstract class PhisicalObjectWraper(parser: Parser,
 }
 
 
-abstract class PhisicalObjectTyped(context:ActorContext[PhisicalObjectEvent],  parser: Parser,
+abstract class PhisicalObjectTyped(context:ActorContext[PhisicalObjectEvent],
+                                   //parser: Parser,
+                                   parser: ActorRef[ParserCommand],
                                    stateMachine: StateMachine,
                                    mainProtocolPattern: PatternInfo)  extends  AbstractBehavior[PhisicalObjectEvent](context) {
 
