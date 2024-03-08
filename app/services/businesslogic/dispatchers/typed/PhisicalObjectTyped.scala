@@ -6,8 +6,7 @@ import org.slf4j.Logger
 import services.businesslogic.channelparsers.oldrealisation.Parser.PatternInfo
 import services.businesslogic.channelparsers.typed.ParserTyped.ParserCommand
 import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.PhisicalObjectEvent
-import services.businesslogic.statemachines.StateMachine
-
+import services.businesslogic.statemachines.oldrealisation.StateMachine
 
 
 object PhisicalObjectTyped {

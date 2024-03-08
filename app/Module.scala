@@ -17,7 +17,7 @@ import services.businesslogic.channelparsers.typed._
 import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.PhisicalObjectEvent
 import services.businesslogic.dispatchers.typed.{RailWeighbridgeTyped, RailWeighbridgeWrapper, TruckScaleTyped, TruckScaleWrapper}
 import services.businesslogic.managers.PhisicalObjectsManager
-import services.businesslogic.statemachines.{AutoStateMachine, RailStateMachine, StateMachine}
+import services.businesslogic.statemachines.oldrealisation.{AutoStateMachine, RailStateMachine, StateMachine}
 import services.start.{ApplicationStartDebug, InterfaceStart}
 import services.storage.GlobalStorage._
 import services.storage.{GlobalStorage, StateMachinesStorage, TcpStorage}

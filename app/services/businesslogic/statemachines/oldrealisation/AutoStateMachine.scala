@@ -1,4 +1,4 @@
-package services.businesslogic.statemachines
+package services.businesslogic.statemachines.oldrealisation
 
 import com.google.inject.name.Named
 import executioncontexts.CustomBlockingExecutionContext
@@ -6,8 +6,8 @@ import models.extractors.NoCardOrWithCard
 import models.extractors.Protocol2NoCard.{NoCard, patternPerimeters}
 import models.extractors.Protocol2WithCard.WithCard
 import play.api.Logger
-import services.businesslogic.statemachines.AutoStateMachine.{Perimeters, StateAutoPlatform}
-import services.businesslogic.statemachines.StateMachine.StatePlatform
+import StateMachine.StatePlatform
+import services.businesslogic.statemachines.oldrealisation.AutoStateMachine.{Perimeters, StateAutoPlatform}
 import services.storage.StateMachinesStorage
 import utils.{AtomicOption, EmMarineConvert}
 
@@ -118,8 +118,7 @@ class AutoStateMachine @Inject()(@Named("CardPatternName") nameCardPattern: Stri
     val newState = StateAutoPlatform(perimeters, stateData._2.replace('?', '0').replace(' ', '0').toInt, stateData._3)
 
     state.setState(Some(newState))
-    //val d = LocalDateTime.now
-    //logger.info(s"$newState  ${formatter.format(d)}")
+
 
   }
 

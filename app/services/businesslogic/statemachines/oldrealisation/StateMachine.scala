@@ -1,8 +1,8 @@
-package services.businesslogic.statemachines
+package services.businesslogic.statemachines.oldrealisation
 
 import executioncontexts.CustomBlockingExecutionContext
 import models.extractors.NoCardOrWithCard
-import services.businesslogic.statemachines.StateMachine.StatePlatform
+import services.businesslogic.statemachines.oldrealisation.StateMachine.StatePlatform
 
 import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue}
 import javax.inject.Inject

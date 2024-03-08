@@ -4,7 +4,7 @@ import akka.actor.Actor
 import akka.event.{Logging, LoggingAdapter}
 import services.businesslogic.channelparsers.oldrealisation.Parser.PatternInfo
 import services.businesslogic.channelparsers.oldrealisation.Parser
-import services.businesslogic.statemachines.StateMachine
+import services.businesslogic.statemachines.oldrealisation.StateMachine
 
 
 object PhisicalObject {

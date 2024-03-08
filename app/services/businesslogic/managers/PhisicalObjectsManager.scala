@@ -30,7 +30,7 @@ class PhisicalObjectsManager @Inject()(@Named("RailWeighbridge") rail: ActorRef[
 
 
 
-  def getPhisicalObjectByNameT(name: String): Option[akka.actor.typed.ActorRef[PhisicalObjectEvent]] = {
+  def getPhisicalObjectByNameT(name: String): Option[ActorRef[PhisicalObjectEvent]] = {
     name match {
       case "RailWeighbridge" => Some(rail)
       case "TruckScale[1]" => Some(truck1)

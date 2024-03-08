@@ -9,7 +9,7 @@ import utils.CRC16Modbus
 import scala.util.matching.Regex
 
 
-trait Protocol {
+  trait Protocol {
   val logger: Logger = Logger(this.getClass)
 
   val useCRC: Boolean = if (ConfigFactory.load.hasPath("useCRC")) ConfigFactory.load.getBoolean("useCRC") else false
@@ -97,7 +97,7 @@ trait Protocol {
   }
 }
 
-object Protocol2WithCard extends Protocol {
+  object Protocol2WithCard extends Protocol {
   case class WithCard(prefix: String, perimeters: String, weight: String, crc: String,
                       card: String, typeCard: String, svetofor: String) extends NoCardOrWithCard with PhisicalObjectEvent
   def apply(prefix: String, perimeters: String, weight: String, crc: String, card: String, typeCard: String, svetofor: String): String = {
@@ -162,7 +162,7 @@ object Protocol2WithCard extends Protocol {
   }
 }
 
-object ProtocolRail extends Protocol  {
+  object ProtocolRail extends Protocol  {
   case class RailWeight(prefix:String, weight:String)  extends NoCardOrWithCard with PhisicalObjectEvent
 
   def apply(prefix:String, weight:String):String = {

@@ -8,9 +8,9 @@ import play.api._
 import play.api.libs.json.{JsArray, JsString, JsValue, Json}
 import play.api.mvc._
 import services.businesslogic.managers.PhisicalObjectsManager
-import services.businesslogic.statemachines.AutoStateMachine.StateAutoPlatform
-import services.businesslogic.statemachines.RailStateMachine.StateRailPlatform
-import services.businesslogic.statemachines.StateMachine
+import services.businesslogic.statemachines.oldrealisation.StateMachine
+import services.businesslogic.statemachines.oldrealisation.AutoStateMachine.StateAutoPlatform
+import services.businesslogic.statemachines.oldrealisation.RailStateMachine.StateRailPlatform
 import services.storage.{GlobalStorage, StateMachinesStorage}
 
 import javax.inject._

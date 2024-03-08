@@ -5,7 +5,7 @@ import play.api.Logger
 import services.businesslogic.channelparsers.oldrealisation.Parser.PatternInfo
 import services.businesslogic.channelparsers.typed.ParserTyped.ParserCommand
 import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.PhisicalObjectEvent
-import services.businesslogic.statemachines.StateMachine
+import services.businesslogic.statemachines.oldrealisation.StateMachine
 
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Singleton

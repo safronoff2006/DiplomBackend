@@ -7,7 +7,7 @@ import play.api.Logger
 import services.businesslogic.channelparsers.oldrealisation.Parser.PatternInfo
 import services.businesslogic.channelparsers.oldrealisation.Parser
 import services.businesslogic.dispatchers.notyped.PhisicalObject._
-import services.businesslogic.statemachines.StateMachine
+import services.businesslogic.statemachines.oldrealisation.StateMachine
 
 import javax.inject.{Inject, Named, Singleton}
 

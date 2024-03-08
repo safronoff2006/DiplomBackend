@@ -8,7 +8,7 @@ import play.api.Logger
 import services.businesslogic.channelparsers.oldrealisation.Parser.PatternInfo
 import services.businesslogic.channelparsers.typed.ParserTyped.{MessageToParse, ParserCommand, SetDispatcher, SetPattern}
 import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.PhisicalObjectEvent
-import services.businesslogic.statemachines.StateMachine
+import services.businesslogic.statemachines.oldrealisation.StateMachine
 import services.storage.GlobalStorage
 import services.storage.GlobalStorage.{CreateTruckScaleDispatcher, MainBehaviorCommand}
 

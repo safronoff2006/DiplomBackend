@@ -1,11 +1,11 @@
-package services.businesslogic.statemachines
+package services.businesslogic.statemachines.oldrealisation
 
 import executioncontexts.CustomBlockingExecutionContext
 import models.extractors.NoCardOrWithCard
 import models.extractors.ProtocolRail.RailWeight
 import play.api.Logger
-import services.businesslogic.statemachines.RailStateMachine.StateRailPlatform
-import services.businesslogic.statemachines.StateMachine.StatePlatform
+import services.businesslogic.statemachines.oldrealisation.RailStateMachine.StateRailPlatform
+import services.businesslogic.statemachines.oldrealisation.StateMachine.StatePlatform
 import services.storage.StateMachinesStorage
 import utils.AtomicOption
 
