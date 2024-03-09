@@ -53,6 +53,17 @@ object GlobalStorage {
   case class CreateAutoProtocolParser(id: String) extends MainBehaviorCommand
   case class CreateRailProtocolParser(id: String) extends MainBehaviorCommand
 
+  case class CreateAutoStateMachine(nameCardPattern: String,
+                                    stateStorage: StateMachinesStorage,
+                                    convertEmMarine: Boolean,
+                                    cardTimeout: Long, id: String) extends MainBehaviorCommand
+
+
+  case class CreateRailStateMachine(stateStorage: StateMachinesStorage, id: String) extends MainBehaviorCommand
+
+
+
+
 
   def getValidNames: List[String] = List("RailWeighbridge","TruckScale[1]", "TruckScale[2]", "TruckScale[3]")
 

@@ -33,6 +33,10 @@ class StateMachinesStorage {
 
   def getList: List[(String,StateMachine)] = storage.entrySet().asScala.map(x => x.getKey -> x.getValue).toList
 
+
+
+
+
   //новое под акторы
   private val storageT: ConcurrentHashMap[String, ActorRef[StateMachineCommand]] = new ConcurrentHashMap()
 

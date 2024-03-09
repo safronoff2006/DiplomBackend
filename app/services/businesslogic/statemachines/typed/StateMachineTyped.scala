@@ -14,7 +14,13 @@ object StateMachineTyped {
 
   case class Name(name: String) extends StateMachineCommand
   case class ProtocolExecute(message: NoCardOrWithCard) extends StateMachineCommand
+  case class CardExecute(card: String) extends StateMachineCommand
+  case object GetState extends StateMachineCommand
 
+
+  case object Flush extends StateMachineCommand
+
+  case object Timeout extends StateMachineCommand
 
 }
 

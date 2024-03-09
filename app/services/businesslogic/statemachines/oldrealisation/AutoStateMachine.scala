@@ -53,7 +53,7 @@ class AutoStateMachine @Inject()(@Named("CardPatternName") nameCardPattern: Stri
   private val workedCard: AtomicOption[String] = new AtomicOption(None)
   private val workedExchanger: AtomicOption[Exchanger[String]] = new AtomicOption(None)
 
-
+//проанализировал - внутренний
   private def processingCard(): Unit = {
     workedCard.getState match {
       case Some(card) =>  logger.info(s"Процессинг карты $card")
@@ -62,7 +62,7 @@ class AutoStateMachine @Inject()(@Named("CardPatternName") nameCardPattern: Stri
     }
   }
 
-
+  //проанализировал - внутренний
   private def cardExecute(card: String): Unit = {
     val formatedCard = if (convertEmMarine) EmMarineConvert.emHexToEmText(card.toUpperCase)
     else card.toUpperCase
@@ -98,6 +98,7 @@ class AutoStateMachine @Inject()(@Named("CardPatternName") nameCardPattern: Stri
 
   private val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss SSS")
 
+  //проанализировал - вызывается из обработчика очереди сообщений
   override def protocolExecute(message: NoCardOrWithCard): Unit = {
     val stateData: (String, String, String) = message match {
       case protocolObject: NoCard =>
@@ -122,6 +123,9 @@ class AutoStateMachine @Inject()(@Named("CardPatternName") nameCardPattern: Stri
 
   }
 
+  //проанализировал - вызывается
+  //1) из  controllers.MainController.getState(name:String)
+  //2) из jsonStatesOfListStates  в controllers.MainController
   override def getState: Option[StatePlatform] = state.getState
 
   //должно вызываться из внешнего по отношению к сервису потока
