@@ -77,9 +77,9 @@ class  RailStateMachineTyped(context: ActorContext[StateMachineCommand],stateSto
       case _ => "??????"
     }
 
-    val newState = StateRailPlatform(stateData.replace('?', '0').replace(' ', '0').toInt)
+    val newState: StateRailPlatform = StateRailPlatform(stateData.replace('?', '0').replace(' ', '0').toInt)
     state.setState(Some(newState))
-
+    stateStorage.setHttpState(name, (newState, idnx))
 
   }
 }

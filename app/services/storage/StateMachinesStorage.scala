@@ -3,7 +3,7 @@ package services.storage
 import akka.actor.typed.ActorRef
 import play.api.Logger
 import services.businesslogic.statemachines.oldrealisation.StateMachine
-import services.businesslogic.statemachines.typed.StateMachineTyped.StateMachineCommand
+import services.businesslogic.statemachines.typed.StateMachineTyped.{StateMachineCommand, StatePlatform}
 import services.storage.StateMachinesStorage.StateMachineAddException
 
 import java.util.concurrent.ConcurrentHashMap
@@ -51,5 +51,13 @@ class StateMachinesStorage {
 
   def getListT: List[(String, ActorRef[StateMachineCommand])] = storageT.entrySet().asScala.map(x => x.getKey -> x.getValue).toList
 
+
+  //стейт платформ  для отдачи по http
+
+  private val httpState: ConcurrentHashMap[String, (StatePlatform, Int)] = new ConcurrentHashMap()
+
+  def getHttpState(name: String): Option[(StatePlatform, Int)] = if (httpState.containsKey(name)) Some(httpState.get(name)) else None
+
+  def setHttpState(name: String, state: (StatePlatform, Int)): (StatePlatform, Int) = httpState.put(name, state)
 
 }

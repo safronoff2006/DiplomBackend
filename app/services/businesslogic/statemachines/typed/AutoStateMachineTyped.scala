@@ -132,10 +132,10 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
       stateData._1.charAt(3)
     )
 
-    val newState = StateAutoPlatform(perimeters, stateData._2.replace('?', '0').replace(' ', '0').toInt, stateData._3)
+    val newState: StateAutoPlatform = StateAutoPlatform(perimeters, stateData._2.replace('?', '0').replace(' ', '0').toInt, stateData._3)
 
     state.setState(Some(newState))
-
+    stateStorage.setHttpState(name, (newState, idnx))
 
   }
 

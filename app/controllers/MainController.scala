@@ -5,12 +5,9 @@ import models.readerswriters.CardModel
 import models.readerswriters.CardModel.CardModelWritesReads
 import models.readerswriters.WorkplaceModel.WorkplaceModelWritesReads
 import play.api._
-import play.api.libs.json.{JsArray, JsString, JsValue, Json}
+import play.api.libs.json.{JsArray, JsString, JsValue}
 import play.api.mvc._
 import services.businesslogic.managers.PhisicalObjectsManager
-import services.businesslogic.statemachines.oldrealisation.StateMachine
-import services.businesslogic.statemachines.oldrealisation.AutoStateMachine.StateAutoPlatform
-import services.businesslogic.statemachines.oldrealisation.RailStateMachine.StateRailPlatform
 import services.storage.{GlobalStorage, StateMachinesStorage}
 
 import javax.inject._
@@ -33,7 +30,7 @@ class MainController @Inject()(val cc: ControllerComponents, stateStorage: State
   private val logger: Logger = Logger(this.getClass)
   logger.info("Создан MainController")
 
-
+/*
   private def jsonStatesOfListStates(listStates: List[(String, StateMachine)]): Result = {
     val isres: Seq[JsValue] = listStates
       .map(smPair => (smPair._1, smPair._2.getState, smPair._2.idnx))
@@ -87,12 +84,15 @@ class MainController @Inject()(val cc: ControllerComponents, stateStorage: State
   }
 
   def getAllStates: Action[AnyContent] = Action.async {
-    request: Request[AnyContent] => Future(jsonStatesOfListStates(stateStorage.getList))
+    request: Request[AnyContent] =>
+
+      Future(jsonStatesOfListStates(stateStorage.getList))
   }
 
   def getState(name: String): Action[AnyContent] = Action.async {
     request: Request[AnyContent] => {
       Future {
+
         val optMachine: Option[StateMachine] = stateStorage.get(name)
         val state: JsValue = optMachine match {
           case None => Json.obj("none" -> s"Не найдена стейт-машина по имени $name")
@@ -133,6 +133,8 @@ class MainController @Inject()(val cc: ControllerComponents, stateStorage: State
             }
         }
         Ok(state)
+
+
       }
     }
   }
@@ -143,6 +145,9 @@ class MainController @Inject()(val cc: ControllerComponents, stateStorage: State
         jsonStatesOfListStates(stateStorage.getList.filter(x => name.contains(x._1)))
       }
   }
+
+
+ */
 
   def getValidNames: Action[AnyContent] = Action { request: Request[AnyContent] =>
     val names = phisManager.getValidNames.map(JsString)
