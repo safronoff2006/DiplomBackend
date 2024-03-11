@@ -19,6 +19,8 @@ import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 import services.storage.GlobalStorage.CreateAutoStateMachine
 
+import scala.util.{Failure, Success, Try}
+
 object AutoStateMachineTyped {
   case class Perimeters(in: Char, out: Char, left: Char, right: Char)
 
@@ -28,10 +30,16 @@ object AutoStateMachineTyped {
     private class ParsePerimetersException(s: String) extends Exception(s)
 
     def apply(perimeters: String, weight: Int, svetofor: String): StateAutoPlatform = {
-      if (!patternPerimeters.matches(perimeters)) throw new ParsePerimetersException(s"Не верный формат периметров: $perimeters")
-      val p: Perimeters = Perimeters(perimeters.charAt(0), perimeters.charAt(1),
-        perimeters.charAt(2), perimeters.charAt(3))
-      StateAutoPlatform(p, weight, svetofor)
+      Try {
+        if (!patternPerimeters.matches(perimeters)) throw new ParsePerimetersException(s"Не верный формат периметров: $perimeters")
+        val p: Perimeters = Perimeters(perimeters.charAt(0), perimeters.charAt(1),
+          perimeters.charAt(2), perimeters.charAt(3))
+        p
+
+      } match {
+        case Failure(exception) =>  StateAutoPlatform(Perimeters('?', '?', '?', '?'), weight, svetofor)
+        case Success(p) =>  StateAutoPlatform(p, weight, svetofor)
+      }
     }
   }
 }
@@ -45,20 +53,33 @@ class AutoStateMachineWraper @Inject()( @Named("CardPatternName") nameCardPatter
   private val logger: Logger = Logger(this.getClass)
   logger.info("Создан AutoStateMachineWraper")
 
-  val optsys: Option[ActorSystem[MainBehaviorCommand]] = GlobalStorage.getSys
-  val sys: ActorSystem[MainBehaviorCommand] = optsys match {
-    case Some(v) =>
-      logger.info("Найден ActorSystem[MainBehaviorCommand]")
-      v
-    case None =>
-      logger.error("Не найден ActorSystem[MainBehaviorCommand]")
-      throw new Exception("Не найден ActorSystem[MainBehaviorCommand]")
-  }
 
+
+  val optsys: Option[ActorSystem[MainBehaviorCommand]] = GlobalStorage.getSys
+
+  val trySys: Try[ActorSystem[MainBehaviorCommand]] = Try {
+
+    val sys: ActorSystem[MainBehaviorCommand] = optsys match {
+      case Some(v) =>
+        logger.info("Найден ActorSystem[MainBehaviorCommand]")
+        v
+      case None =>
+        logger.error("Не найден ActorSystem[MainBehaviorCommand]")
+        throw new Exception("Не найден ActorSystem[MainBehaviorCommand]")
+    }
+    sys
+  }
   override def create(): String = {
-    val id: String = java.util.UUID.randomUUID.toString
-    sys ! CreateAutoStateMachine(nameCardPattern,  stateStorage, convertEmMarine,  cardTimeout, id)
-    id
+    trySys match {
+      case Failure(exception) =>
+        logger.error(exception.getMessage)
+        ""
+      case Success(sys) =>
+        val id: String = java.util.UUID.randomUUID.toString
+        sys ! CreateAutoStateMachine(nameCardPattern, stateStorage, convertEmMarine, cardTimeout, id)
+        id
+    }
+
   }
 }
 

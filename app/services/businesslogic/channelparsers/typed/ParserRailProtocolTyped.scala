@@ -10,6 +10,8 @@ import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.PhisicalObje
 import services.storage.GlobalStorage
 import services.storage.GlobalStorage.{CreateRailProtocolParser, MainBehaviorCommand}
 
+import scala.util.{Failure, Success, Try}
+
 object ParserRailProtocolTyped {
 
 }
@@ -19,6 +21,9 @@ class ParserRailProtokolWraper() extends ParserWraper {
   logger.info("Создан ParserRailProtokolWraper")
 
   val optsys: Option[ActorSystem[MainBehaviorCommand]] = GlobalStorage.getSys
+
+  val trySys = Try {
+
   val sys: ActorSystem[MainBehaviorCommand] = optsys match {
     case Some(v) =>
       logger.info("Найден ActorSystem[MainBehaviorCommand]")
@@ -27,11 +32,22 @@ class ParserRailProtokolWraper() extends ParserWraper {
       logger.error("Не найден ActorSystem[MainBehaviorCommand]")
       throw new Exception("Не найден ActorSystem[MainBehaviorCommand]")
   }
+  sys
+  }
 
   override def create(): String = {
-    val id: String = java.util.UUID.randomUUID.toString
-    sys ! CreateRailProtocolParser(id)
-    id
+
+    trySys match {
+      case Failure(exception) =>
+        logger.error(exception.getMessage)
+        ""
+      case Success(sys) =>
+        val id: String = java.util.UUID.randomUUID.toString
+        sys ! CreateRailProtocolParser(id)
+        id
+    }
+
+
   }
 
 }

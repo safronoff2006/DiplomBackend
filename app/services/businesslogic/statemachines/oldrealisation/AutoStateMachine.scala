@@ -14,6 +14,7 @@ import utils.{AtomicOption, EmMarineConvert}
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.{Exchanger, TimeUnit, TimeoutException}
 import javax.inject.Inject
+import scala.util.{Failure, Success, Try}
 
 
 
@@ -22,17 +23,30 @@ object AutoStateMachine {
 
   case class StateAutoPlatform(perimeters: Perimeters, weight: Int, svetofor: String) extends StatePlatform
 
+  private val logger: Logger = Logger(this.getClass)
 
   object StateAutoPlatform {
+
     private class ParsePerimetersException(s: String) extends Exception(s)
 
     def apply(perimeters: String, weight: Int, svetofor: String): StateAutoPlatform = {
-      if (!patternPerimeters.matches(perimeters))
-        throw new ParsePerimetersException(s"Не верный формат периметров: $perimeters")
 
-      val p: Perimeters = Perimeters(perimeters.charAt(0), perimeters.charAt(1),
-        perimeters.charAt(2), perimeters.charAt(3))
-      StateAutoPlatform(p, weight, svetofor)
+      Try {
+
+        if (!patternPerimeters.matches(perimeters))
+          throw new ParsePerimetersException(s"Не верный формат периметров: $perimeters")
+
+        val p: Perimeters = Perimeters(perimeters.charAt(0), perimeters.charAt(1),
+          perimeters.charAt(2), perimeters.charAt(3))
+
+        p
+      } match {
+        case Failure(exception) =>
+          StateAutoPlatform(Perimeters('?', '?', '?', '?'), weight, svetofor)
+        case Success(p) =>  StateAutoPlatform(p, weight, svetofor)
+      }
+
+
     }
   }
 }

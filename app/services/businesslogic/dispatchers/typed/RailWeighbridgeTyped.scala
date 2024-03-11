@@ -12,6 +12,7 @@ import services.storage.GlobalStorage
 import services.storage.GlobalStorage.{CreateRailWeighbridgeDispatcher, MainBehaviorCommand}
 
 import javax.inject.{Inject, Named}
+import scala.util.{Failure, Success, Try}
 
 object RailWeighbridgeTyped {
 
@@ -31,19 +32,32 @@ class RailWeighbridgeWrapper @Inject() (
 
 
   val optsys: Option[ActorSystem[MainBehaviorCommand]] = GlobalStorage.getSys
-  val sys: ActorSystem[MainBehaviorCommand] = optsys match {
-    case Some(v) =>
-      logger.info("Найден ActorSystem[MainBehaviorCommand]")
-      v
-    case None =>
-      logger.error("Не найден ActorSystem[MainBehaviorCommand]")
-      throw new Exception("Не найден ActorSystem[MainBehaviorCommand]")
-  }
 
+  val trySys = Try {
+
+    val sys: ActorSystem[MainBehaviorCommand] = optsys match {
+      case Some(v) =>
+        logger.info("Найден ActorSystem[MainBehaviorCommand]")
+        v
+      case None =>
+        logger.error("Не найден ActorSystem[MainBehaviorCommand]")
+        throw new Exception("Не найден ActorSystem[MainBehaviorCommand]")
+    }
+
+    sys
+  }
   def create(): String = {
-    val id: String = java.util.UUID.randomUUID.toString
-    sys ! CreateRailWeighbridgeDispatcher(parser, stateMachine, mainProtocolPattern, id)
-    id
+
+    trySys match {
+      case Failure(exception) =>
+        logger.error(exception.getMessage)
+        ""
+      case Success(sys) =>
+        val id: String = java.util.UUID.randomUUID.toString
+        sys ! CreateRailWeighbridgeDispatcher(parser, stateMachine, mainProtocolPattern, id)
+        id
+    }
+
   }
 
 }

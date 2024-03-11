@@ -6,6 +6,7 @@ import play.api.Logger
 import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.PhisicalObjectEvent
 import utils.CRC16Modbus
 
+import scala.util.{Failure, Success, Try}
 import scala.util.matching.Regex
 
 
@@ -49,13 +50,24 @@ import scala.util.matching.Regex
   case class NoCard(prefix: String, perimeters: String, weight: String, crc: String, svetofor: String) extends NoCardOrWithCard with PhisicalObjectEvent
 
   def apply(prefix: String, perimeters: String, weight: String, crc: String, svetofor: String): String = {
-    if (!patternPrefix.matches(prefix)) throw new ProtocolCreateException(s"Не корректный префикс потокола: $prefix")
-    if (!patternPerimeters.matches(perimeters)) throw new ProtocolCreateException(s"Не корректные периметры потокола: $perimeters")
-    if (!patternWeight.matches(weight)) throw new ProtocolCreateException(s"Не корректный вес потокола: $weight")
-    if (!patternCrc.matches(crc)) throw new ProtocolCreateException(s"Не корректный CRC потокола: $crc")
-    if (!pSvetofor.matches(svetofor)) throw new ProtocolCreateException(s"Не корректный светофор потокола: $crc")
 
-    prefix + perimeters + weight + svetofor + "%" + crc + "."
+    Try {
+
+      if (!patternPrefix.matches(prefix)) throw new ProtocolCreateException(s"Не корректный префикс потокола: $prefix")
+      if (!patternPerimeters.matches(perimeters)) throw new ProtocolCreateException(s"Не корректные периметры потокола: $perimeters")
+      if (!patternWeight.matches(weight)) throw new ProtocolCreateException(s"Не корректный вес потокола: $weight")
+      if (!patternCrc.matches(crc)) throw new ProtocolCreateException(s"Не корректный CRC потокола: $crc")
+      if (!pSvetofor.matches(svetofor)) throw new ProtocolCreateException(s"Не корректный светофор потокола: $crc")
+
+    } match {
+      case Failure(exc) =>
+       logger.error(exc.getMessage)
+        ""
+      case Success(_) =>  prefix + perimeters + weight + svetofor + "%" + crc + "."
+    }
+
+
+
   }
   def apply(obj: NoCard): String = apply(obj.prefix, obj.perimeters, obj.weight, obj.crc, obj.svetofor)
 
@@ -101,16 +113,27 @@ import scala.util.matching.Regex
   case class WithCard(prefix: String, perimeters: String, weight: String, crc: String,
                       card: String, typeCard: String, svetofor: String) extends NoCardOrWithCard with PhisicalObjectEvent
   def apply(prefix: String, perimeters: String, weight: String, crc: String, card: String, typeCard: String, svetofor: String): String = {
-    if (!patternPrefix.matches(prefix)) throw new ProtocolCreateException(s"Не корректный префикс потокола: $prefix")
-    if (!patternPerimeters.matches(perimeters)) throw new ProtocolCreateException(s"Не корректные периметры потокола: $perimeters")
-    if (!patternWeight.matches(weight)) throw new ProtocolCreateException(s"Не корректный вес потокола: $weight")
-    if (!patternCrc.matches(crc)) throw new ProtocolCreateException(s"Не корректный CRC потокола: $crc")
-    if (!pCard.matches(card)) throw new ProtocolCreateException(s"Не корректная карта потокола: $card")
-    if (!pCardType.matches(typeCard)) throw new ProtocolCreateException(s"Не корректный  тип карты протокола: $typeCard")
-    if (typeCard == "M" && card.length != 8) throw new  ProtocolCreateException(s"Не корректная карта потокола: $card")
-    if (typeCard == "Q" && card.length != 36) throw new  ProtocolCreateException(s"Не корректная карта потокола: $card")
-    if (!pSvetofor.matches(svetofor)) throw new ProtocolCreateException(s"Не корректный светофор потокола: $svetofor")
-    prefix + perimeters + weight + typeCard + card + svetofor + "%" + crc + "."
+
+    Try {
+
+      if (!patternPrefix.matches(prefix)) throw new ProtocolCreateException(s"Не корректный префикс потокола: $prefix")
+      if (!patternPerimeters.matches(perimeters)) throw new ProtocolCreateException(s"Не корректные периметры потокола: $perimeters")
+      if (!patternWeight.matches(weight)) throw new ProtocolCreateException(s"Не корректный вес потокола: $weight")
+      if (!patternCrc.matches(crc)) throw new ProtocolCreateException(s"Не корректный CRC потокола: $crc")
+      if (!pCard.matches(card)) throw new ProtocolCreateException(s"Не корректная карта потокола: $card")
+      if (!pCardType.matches(typeCard)) throw new ProtocolCreateException(s"Не корректный  тип карты протокола: $typeCard")
+      if (typeCard == "M" && card.length != 8) throw new ProtocolCreateException(s"Не корректная карта потокола: $card")
+      if (typeCard == "Q" && card.length != 36) throw new ProtocolCreateException(s"Не корректная карта потокола: $card")
+      if (!pSvetofor.matches(svetofor)) throw new ProtocolCreateException(s"Не корректный светофор потокола: $svetofor")
+
+    } match {
+      case Failure(exc) =>
+      logger.error(exc.getMessage)
+        ""
+      case Success(_) => prefix + perimeters + weight + typeCard + card + svetofor + "%" + crc + "."
+    }
+
+
   }
   def apply(obj:WithCard): String = apply(obj.prefix, obj.perimeters, obj.weight, obj.crc, obj.card, obj.typeCard, obj.svetofor)
   def unapply(str: String): Option[WithCard] = {
@@ -166,9 +189,18 @@ import scala.util.matching.Regex
   case class RailWeight(prefix:String, weight:String)  extends NoCardOrWithCard with PhisicalObjectEvent
 
   def apply(prefix:String, weight:String):String = {
-    if (!patternRailPrefix.matches(prefix)) throw new ProtocolCreateException(s"Не корректный префикс потокола: $prefix")
-    if (!patternRailWeight.matches(weight)) throw new ProtocolCreateException(s"Не корректный вес потокола: $weight")
-    prefix + weight + "."
+    Try {
+
+      if (!patternRailPrefix.matches(prefix)) throw new ProtocolCreateException(s"Не корректный префикс потокола: $prefix")
+      if (!patternRailWeight.matches(weight)) throw new ProtocolCreateException(s"Не корректный вес потокола: $weight")
+
+    } match {
+      case Failure(exception) =>
+      logger.error(exception.getMessage)
+        ""
+      case Success(value) =>  prefix + weight + "."
+    }
+
   }
 
   def apply(obj: RailWeight):String = apply(obj.prefix, obj.weight)

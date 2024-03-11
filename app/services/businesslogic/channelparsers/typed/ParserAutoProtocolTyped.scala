@@ -11,6 +11,8 @@ import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.PhisicalObje
 import services.storage.GlobalStorage
 import services.storage.GlobalStorage.{CreateAutoProtocolParser, MainBehaviorCommand}
 
+import scala.util.{Failure, Success, Try}
+
 object ParserAutoProtocolTyped {
 
 }
@@ -20,19 +22,34 @@ class ParserAutoProtocolWraper() extends ParserWraper {
   logger.info("Создан ParserAutoProtocolWraper")
 
   val optsys: Option[ActorSystem[MainBehaviorCommand]] = GlobalStorage.getSys
-  val sys: ActorSystem[MainBehaviorCommand] = optsys match {
-    case Some(v) =>
-      logger.info("Найден ActorSystem[MainBehaviorCommand]")
-      v
-    case None =>
-      logger.error("Не найден ActorSystem[MainBehaviorCommand]")
-      throw new Exception("Не найден ActorSystem[MainBehaviorCommand]")
+  val trySys = Try {
+
+    val sys: ActorSystem[MainBehaviorCommand] = optsys match {
+      case Some(v) =>
+        logger.info("Найден ActorSystem[MainBehaviorCommand]")
+        v
+      case None =>
+        logger.error("Не найден ActorSystem[MainBehaviorCommand]")
+        throw new Exception("Не найден ActorSystem[MainBehaviorCommand]")
+    }
+
+    sys
+
   }
 
   override def create(): String = {
-    val id: String = java.util.UUID.randomUUID.toString
-    sys ! CreateAutoProtocolParser(id)
-    id
+
+    trySys match {
+      case Failure(exception) =>
+        logger.error(exception.getMessage)
+        ""
+      case Success(sys) => {
+        val id: String = java.util.UUID.randomUUID.toString
+        sys ! CreateAutoProtocolParser(id)
+        id
+      }
+    }
+
   }
 }
 
