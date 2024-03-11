@@ -60,4 +60,6 @@ class StateMachinesStorage {
 
   def setHttpState(name: String, state: (StatePlatform, Int)): (StatePlatform, Int) = httpState.put(name, state)
 
+  def getListHttpStates: List[(String, (StatePlatform, Int))] = httpState.entrySet().asScala.map(x => x.getKey -> x.getValue).toList
+
 }

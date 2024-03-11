@@ -106,10 +106,10 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
 
 
   //должно вызываться из кейса сообщения СardResponse
-  override def cardResponse(param: String): Unit = {
-    log.info(s"$name  Обработка карты завершена. Параметр $param.")
-    context.self ! Flush
-  }
+  //override def cardResponse(param: String): Unit = {
+  ///  log.info(s"$name  Обработка карты завершена. Параметр $param.")
+  //  context.self ! Flush
+  //}
 
   //должно вызываться из кейса сообщения GetState
   override def getState: Option[StatePlatform] = state.getState
@@ -120,7 +120,7 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
       case protocolObject: NoCard =>
         (protocolObject.perimeters, protocolObject.weight, protocolObject.svetofor)
       case protocolObject: WithCard =>
-        cardExecute(protocolObject.card)
+        context.self ! CardExecute(protocolObject.card)
         (protocolObject.perimeters, protocolObject.weight, protocolObject.svetofor)
       case _ => ("????", "??????", "?")
     }
@@ -140,6 +140,7 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
   }
 
   override def onMessage(msg: StateMachineCommand): Behavior[StateMachineCommand] = {
+    context.log.info("Create onMessage Behavior")
     msg match {
       case Name(n) =>
         name = n
@@ -149,43 +150,66 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
     }
   }
 
-  private def work(): Behavior[StateMachineCommand] = Behaviors.receiveMessage[StateMachineCommand] {
-    case ProtocolExecute(message) => protocolExecute(message)
-      log.info("work", "ProtocolExecute")
-      work()
+  private def work(): Behavior[StateMachineCommand] = Behaviors.receiveMessage[StateMachineCommand] { message =>
 
-    case CardExecute(card) =>
-      log.info("work", "CardExecute")
-      timeout()
+    context.log.info("Create work Behavior")
 
-    case GetState =>
-      log.info("work", "GetState", getState)
-      work()
+    message match {
+      case ProtocolExecute(message) => protocolExecute(message)
+        log.info(s"work ProtocolExecute  $name", "ProtocolExecute")
+        work()
 
-    case _ => Behaviors.unhandled
+      case CardExecute(card) =>
+        log.info(s"work CardExecute  $name", "CardExecute")
+        withready()
+
+      case GetState =>
+        log.info(s"work GetState $name    $getState", "GetState", "getState")
+        work()
+
+      case _ => Behaviors.same
+
+    }
   }
 
-  private def timeout(): Behavior[StateMachineCommand] = Behaviors.withTimers[StateMachineCommand] { timers =>
-    timers.startSingleTimer(Timeout, 5 second)
+  private def withready(): Behavior[StateMachineCommand] = Behaviors.withTimers[StateMachineCommand] { timers =>
+
+    context.log.info("Create timeout Behavior")
+
+    timers.startSingleTimer(Timeout, 3 second)
     Behaviors.receiveMessagePartial {
+
       case Flush =>
-        log.info("timeout","Flush")
+        log.info("timeout  Flush", "Flush")
         workedCard.setState(None)
         cardProcessingBusy = false
         work()
 
       case Timeout =>
-        log.info("timeout","Timeout")
+        log.warn("timeout  Timeout!!!!!!", "Timeout")
         workedCard.setState(None)
         cardProcessingBusy = false
         work()
 
-      case CardExecute(card) =>  cardExecute(card)
-        log.info("timeout","CardExecute")
-        timeout()
+      case ProtocolExecute(message) => protocolExecute(message)
+        log.info(s"timeout ProtocolExecute  $name", "ProtocolExecute")
+        withready()
 
-      case _ => Behaviors.unhandled
+      case GetState =>
+        log.info(s"timeout GetState $name    $getState", "GetState", "getState")
+        withready()
+
+
+      case CardRespToState(param) =>
+        log.info(s"timeout  CardRespToState  $name  Обработка карты завершена. Параметр $param.")
+        workedCard.setState(None)
+        cardProcessingBusy = false
+        work()
+
+      case _ => Behaviors.same
     }
 
   }
+
+
 }

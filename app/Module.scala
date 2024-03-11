@@ -11,13 +11,14 @@ import net.udp.UdpServerManager
 import play.api.Logger
 import play.api.inject.Injector
 import play.api.libs.concurrent.AkkaGuiceSupport
-import services.businesslogic.channelparsers.oldrealisation.Parser.PatternInfo
+import services.businesslogic.channelparsers.typed.ParserTyped.PatternInfo
 import services.businesslogic.channelparsers.typed.ParserTyped.ParserCommand
 import services.businesslogic.channelparsers.typed._
 import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.PhisicalObjectEvent
 import services.businesslogic.dispatchers.typed.{RailWeighbridgeTyped, RailWeighbridgeWrapper, TruckScaleTyped, TruckScaleWrapper}
 import services.businesslogic.managers.PhisicalObjectsManager
-import services.businesslogic.statemachines.oldrealisation.{AutoStateMachine, RailStateMachine, StateMachine}
+import services.businesslogic.statemachines.typed.StateMachineTyped.StateMachineCommand
+import services.businesslogic.statemachines.typed.{AutoStateMachineTyped, AutoStateMachineWraper, RailStateMachineTyped, RailStateMachineWraper, StateMachineWraper}
 import services.start.{ApplicationStartDebug, InterfaceStart}
 import services.storage.GlobalStorage._
 import services.storage.{GlobalStorage, StateMachinesStorage, TcpStorage}
@@ -74,6 +75,26 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
             val ref = context.spawn(actorParserBehavior, id)
             context.log.info(s"Create actorProtocol $id")
             GlobalStorage.setRefParser(id, ref)
+            Behaviors.same
+
+          case CreateAutoStateMachine(nameCardPattern, stateStorage, convertEmMarine, cardTimeout, id) =>
+            val actorStateMachineBehavior: Behavior[StateMachineCommand] = Behaviors.setup[StateMachineCommand] { ctx =>
+              new AutoStateMachineTyped(ctx, nameCardPattern, stateStorage, convertEmMarine, cardTimeout)
+            }
+
+            val ref = context.spawn(actorStateMachineBehavior, id)
+            context.log.info(s"Create actorStateMachine $id")
+            GlobalStorage.setRefSM(id, ref)
+            Behaviors.same
+
+          case CreateRailStateMachine(stateStorage, id) =>
+            val actorStateMachineBehavior: Behavior[StateMachineCommand] = Behaviors.setup[StateMachineCommand] { ctx =>
+              new RailStateMachineTyped(ctx, stateStorage)
+            }
+
+            val ref = context.spawn(actorStateMachineBehavior, id)
+            context.log.info(s"Create actorStateMachine $id")
+            GlobalStorage.setRefSM(id, ref)
             Behaviors.same
 
           case _ => Behaviors.same
@@ -167,29 +188,19 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
     //привязка сервисов
     bind(classOf[InterfaceStart]).to(classOf[ApplicationStartDebug]).asEagerSingleton()
     bind(classOf[GlobalStorage]).asEagerSingleton()
+
     bind(classOf[StateMachinesStorage]).asEagerSingleton()
 
-    //bind(classOf[Parser]).annotatedWith(Names.named("AutoParser")).to(classOf[ParserAutoProtocol])
     bind(classOf[ParserWraper]).annotatedWith(Names.named("AutoParserW")).to(classOf[ParserAutoProtocolWraper])
-
-    //bind(classOf[Parser]).annotatedWith(Names.named("RailParser")).to(classOf[ParserRailProtocol])
     bind(classOf[ParserWraper]).annotatedWith(Names.named("RailParserW")).to(classOf[ParserRailProtokolWraper])
 
-    bind(classOf[StateMachine]).annotatedWith(Names.named("AutoStateMachine")).to(classOf[AutoStateMachine])
-    bind(classOf[StateMachine]).annotatedWith(Names.named("RailStateMachine")).to(classOf[RailStateMachine])
+
+    bind(classOf[StateMachineWraper]).annotatedWith(Names.named("AutoStateMachineW")).to(classOf[AutoStateMachineWraper])
+    bind(classOf[StateMachineWraper]).annotatedWith(Names.named("RailStateMachineW")).to(classOf[RailStateMachineWraper])
 
     bindActorFactory[TcpServer, TcpServer.BuildFactory]
 
-
-
-
-    //bindActorFactory[TruckScale,TruckScale.BuildFactory] //убрать потоом
-    //bindActorFactory[RailWeighbridge,RailWeighbridge.BuildFactory]
-
     bind(classOf[TcpServerBuilder]).asEagerSingleton()
-
-    //bind(classOf[TruckScaleBuilder]).asEagerSingleton() //убрать потом
-    //bind(classOf[RailWeighbridgeBuilder]).asEagerSingleton()
 
     bind(classOf[PhisicalObjectsManager]).asEagerSingleton()
 
@@ -219,6 +230,15 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
       optref match {
         case Some(ref) => ref
         case None => getRefParser(id)
+      }
+    }
+
+    @tailrec
+    def getRefST(id: String): ActorRef[StateMachineCommand] = {
+      val optref = GlobalStorage.getRefSM(id)
+      optref match {
+        case Some(ref) => ref
+        case None => getRefST(id)
       }
     }
   }
@@ -261,6 +281,21 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
     GetRefWhenExist.getRefParser(id)
   }
 
+  //провайдеры акторов стейт-машин
+
+  @Provides
+  @Named("AutoStateMachineA")
+  def getAutoStateMachineActor(@Named("AutoStateMachineW") sm: StateMachineWraper):ActorRef[StateMachineCommand] = {
+    val id = sm.create()
+    GetRefWhenExist.getRefST(id)
+  }
+
+  @Provides
+  @Named("RailStateMachineA")
+  def getRailStateMachineActor(@Named("RailStateMachineW") sm: StateMachineWraper): ActorRef[StateMachineCommand] = {
+    val id = sm.create()
+    GetRefWhenExist.getRefST(id)
+  }
 
   //провайдеры кортежей паттернов для парсеров протоколов
   @Provides

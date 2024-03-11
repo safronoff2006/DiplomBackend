@@ -51,14 +51,4 @@ class TcpStorage @Inject()(config: Configuration, tcpBuilder: TcpServerBuilder) 
     case Some(servers) => servers.find(_._1 == id).map(_._2)
   }
 
-  //тест
-//  println(s"Тест getHostIp $getHostIp")
-//  private val c1 = getServerConfigById("Первый")
-//  private val c2 = getServerConfigById("foo")
-//  println(s"Тест getServerConfigById $c1  $c2")
-//
-//  private val s1 = getServerById("Второй")
-//  private val s2 = getServerById("foo")
-//  println(s"Тест getServerById $s1  $s2")
-
 }

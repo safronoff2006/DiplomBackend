@@ -2,10 +2,10 @@ package services.storage
 
 import akka.actor.typed.{ActorRef, ActorSystem}
 import play.api.Logger
-import services.businesslogic.channelparsers.oldrealisation.Parser.PatternInfo
+import services.businesslogic.channelparsers.typed.ParserTyped.PatternInfo
 import services.businesslogic.channelparsers.typed.ParserTyped.ParserCommand
 import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.PhisicalObjectEvent
-import services.businesslogic.statemachines.oldrealisation.StateMachine
+import services.businesslogic.statemachines.typed.StateMachineTyped.StateMachineCommand
 
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Singleton
@@ -46,10 +46,9 @@ object GlobalStorage {
   private var optSys: Option[ActorSystem[MainBehaviorCommand]] = None
 
   trait MainBehaviorCommand
-  //case class CreateTruckScaleDispatcher(parser: Parser, stateMachine: StateMachine, mainProtocolPattern: PatternInfo, id: String) extends MainBehaviorCommand
-  case class CreateTruckScaleDispatcher(parser: ActorRef[ParserCommand], stateMachine: StateMachine, mainProtocolPattern: PatternInfo, id: String) extends MainBehaviorCommand
-  //case class CreateRailWeighbridgeDispatcher(parser: Parser, stateMachine: StateMachine, mainProtocolPattern: PatternInfo, id: String) extends MainBehaviorCommand
-  case class CreateRailWeighbridgeDispatcher(parser: ActorRef[ParserCommand], stateMachine: StateMachine, mainProtocolPattern: PatternInfo, id: String) extends MainBehaviorCommand
+
+  case class CreateTruckScaleDispatcher(parser: ActorRef[ParserCommand], stateMachine: ActorRef[StateMachineCommand], mainProtocolPattern: PatternInfo, id: String) extends MainBehaviorCommand
+  case class CreateRailWeighbridgeDispatcher(parser: ActorRef[ParserCommand], stateMachine: ActorRef[StateMachineCommand], mainProtocolPattern: PatternInfo, id: String) extends MainBehaviorCommand
   case class CreateAutoProtocolParser(id: String) extends MainBehaviorCommand
   case class CreateRailProtocolParser(id: String) extends MainBehaviorCommand
 
@@ -84,5 +83,11 @@ object GlobalStorage {
   def setRefParser(id:String, ref: ActorRef[ParserCommand]): ActorRef[ParserCommand] = parsersMap.put(id, ref)
 
   def getRefParser(id: String): Option[ActorRef[ParserCommand]] = if (parsersMap.containsKey(id)) Some(parsersMap.get(id)) else None
+
+  private val stateMachineMap = new ConcurrentHashMap[String, ActorRef[StateMachineCommand]]()
+
+  def setRefSM(id: String, ref: ActorRef[StateMachineCommand]): ActorRef[StateMachineCommand] = stateMachineMap.put(id, ref)
+
+  def getRefSM(id: String): Option[ActorRef[StateMachineCommand]] = if (stateMachineMap.containsKey(id)) Some(stateMachineMap.get(id)) else None
 
 }

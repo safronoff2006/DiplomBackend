@@ -15,8 +15,9 @@ object StateMachineTyped {
   case class Name(name: String) extends StateMachineCommand
   case class ProtocolExecute(message: NoCardOrWithCard) extends StateMachineCommand
   case class CardExecute(card: String) extends StateMachineCommand
-  case object GetState extends StateMachineCommand
+  case class CardRespToState(param: String) extends StateMachineCommand
 
+  case object GetState extends StateMachineCommand
 
   case object Flush extends StateMachineCommand
 
@@ -26,9 +27,7 @@ object StateMachineTyped {
 
 
 abstract class StateMachineWraper(){
-
   def create(): String
-
 }
 
 abstract class StateMachineTyped(context: ActorContext[StateMachineCommand])
@@ -51,8 +50,6 @@ abstract class StateMachineTyped(context: ActorContext[StateMachineCommand])
   def name: String = _name
 
   def register(name: String): Unit
-
-  def cardResponse(param: String): Unit
 
   def getState: Option[StatePlatform]
 

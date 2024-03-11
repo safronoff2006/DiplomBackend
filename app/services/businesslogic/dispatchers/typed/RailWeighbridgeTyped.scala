@@ -4,10 +4,10 @@ import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
 import models.extractors.ProtocolRail.RailWeight
 import play.api.Logger
-import services.businesslogic.channelparsers.oldrealisation.Parser.PatternInfo
+import services.businesslogic.channelparsers.typed.ParserTyped.PatternInfo
 import services.businesslogic.channelparsers.typed.ParserTyped.{MessageToParse, ParserCommand, SetDispatcher, SetPattern}
 import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.PhisicalObjectEvent
-import services.businesslogic.statemachines.oldrealisation.StateMachine
+import services.businesslogic.statemachines.typed.StateMachineTyped._
 import services.storage.GlobalStorage
 import services.storage.GlobalStorage.{CreateRailWeighbridgeDispatcher, MainBehaviorCommand}
 
@@ -17,13 +17,13 @@ object RailWeighbridgeTyped {
 
 }
 
-class RailWeighbridgeWrapper @Inject() (//@Named("RailParser") parser: Parser,
+class RailWeighbridgeWrapper @Inject() (
                                        @Named("RailParserA") parser: ActorRef[ParserCommand],
-                                        @Named("RailStateMachine") stateMachine: StateMachine,
+                                        @Named("RailStateMachineA") stateMachine: ActorRef[StateMachineCommand],
                                         @Named("RailsPatternInfo") mainProtocolPattern: PatternInfo)
-  extends PhisicalObjectWraper(//parser: Parser,
+  extends PhisicalObjectWraper(
   parser:  ActorRef[ParserCommand],
-  stateMachine: StateMachine,
+    stateMachine: ActorRef[StateMachineCommand],
   mainProtocolPattern: PatternInfo) {
 
   private val logger: Logger = Logger(this.getClass)
@@ -49,19 +49,15 @@ class RailWeighbridgeWrapper @Inject() (//@Named("RailParser") parser: Parser,
 }
 
 class RailWeighbridgeTyped(context: ActorContext[PhisicalObjectEvent],
-                           //parser: Parser,
                            parser:  ActorRef[ParserCommand],
-                           stateMachine: StateMachine,
+                           stateMachine: ActorRef[StateMachineCommand],
                            mainProtocolPattern: PatternInfo)
   extends PhisicalObjectTyped(context,
-    //parser: Parser,
     parser:  ActorRef[ParserCommand],
-    stateMachine: StateMachine,
+    stateMachine: ActorRef[StateMachineCommand],
     mainProtocolPattern: PatternInfo) {
 
   log.info(s"Создан диспетчер RailWeighbridge  ${context.self}")
-  //parser.setDispatcherT(context.self)
-  //parser.setPattern(mainProtocolPattern)
 
   parser ! SetDispatcher(context.self)
   parser ! SetPattern(mainProtocolPattern)
@@ -71,18 +67,19 @@ class RailWeighbridgeTyped(context: ActorContext[PhisicalObjectEvent],
       case PhisicalObjectTyped.NameEvent(n: String) =>
         setName(n)
         log.info(s"Диспетчер именован: $name")
-        stateMachine.name = n
+        stateMachine ! Name(n)
         Behaviors.same
 
-      case PhisicalObjectTyped.PrintNameEvent(prefix) => log.info(s"$prefix назначен диспетчер физических объектов $name")
+      case PhisicalObjectTyped.PrintNameEvent(prefix) =>
+        log.info(s"$prefix назначен диспетчер физических объектов $name")
         Behaviors.same
 
       case obj: PhisicalObjectTyped.TcpMessageEvent =>
-        //parser.sendToParser(obj.message)
         parser ! MessageToParse(obj.message)
         Behaviors.same
 
-      case obj:RailWeight => stateMachine.protocolMessage(obj)
+      case obj:RailWeight =>
+        stateMachine ! ProtocolExecute(obj)
         Behaviors.same
 
       case _ =>  Behaviors.same

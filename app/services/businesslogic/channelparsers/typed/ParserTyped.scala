@@ -3,12 +3,14 @@ package services.businesslogic.channelparsers.typed
 import akka.actor.typed.{ActorRef, Behavior, PostStop, Signal}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext}
 import org.slf4j.Logger
-import services.businesslogic.channelparsers.oldrealisation.Parser.PatternInfo
-import services.businesslogic.channelparsers.typed.ParserTyped.ParserCommand
+import services.businesslogic.channelparsers.typed.ParserTyped.{ParserCommand, PatternInfo}
 import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.PhisicalObjectEvent
 
 
 object ParserTyped {
+
+  type PatternInfo = (String, String, String, String)
+
   trait ParserCommand
   case class SetPattern(p: PatternInfo) extends ParserCommand
   case class SetDispatcher(ref: ActorRef[PhisicalObjectEvent]) extends ParserCommand

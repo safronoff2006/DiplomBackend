@@ -88,29 +88,6 @@ class ApplicationStartDebug @Inject()(lifecycle: ApplicationLifecycle, environme
   } else Play.stop(injector.instanceOf[Application])
 
 
-  //тест чтения конфигурации TCP серверов и отладка серверов
-  /*
-  if (config.has("tcp-servers")) {
-    val tcpconf: TcpConf = config.get[TcpConf]("tcp-servers")
-    logger.info(s"Конфигурация TCP серверов   $tcpconf")
-
-    val servers: Seq[ActorRef] = tcpconf.servers.map{
-      confServer =>
-        val serv = tcpBuilder.openServer(  confServer.port, confServer.id, confServer.phisicalObject, confServer.channelName )
-        serv
-    }
-
-    val task: java.lang.Runnable = () => {
-      servers.foreach( _ ! Message(s"Тест TCP\n") )
-    }
-
-    val scheduler: Scheduler = system.scheduler
-    val dispatcher = system.dispatcher
-    scheduler.scheduleWithFixedDelay(1 seconds, 5 seconds)(task)(dispatcher)
-}
-*/
-
-
   override def udpDebugCommand(command: String): Unit = {
   val js = Json.parse(command)
 
@@ -173,34 +150,7 @@ class ApplicationStartDebug @Inject()(lifecycle: ApplicationLifecycle, environme
 
 
 
-
-
-
-  /*
-  private var client:ActorRef = _
-  private val taskClient: java.lang.Runnable = () => {
-    val remoteSocket = new InetSocketAddress("127.0.0.1", 8877)
-    client  = system.actorOf(TcpClient.props(remoteSocket, this), "client1")
-    client ! ConnectToServer
-  }
-
-  private val  taskSend: java.lang.Runnable = () => {
-    client  ! ByteString("v++++  4000%0000.")
-  }
-
-
-
-  private val  scheduler: Scheduler = system.scheduler
-  implicit val disp: ExecutionContextExecutor = system.dispatcher
-
-  scheduler.scheduleOnce(10 seconds, taskClient)
-  scheduler.scheduleWithFixedDelay(13 seconds, 10 milliseconds )(taskSend)
-  */
-
-
 }
-
-
 
 
 

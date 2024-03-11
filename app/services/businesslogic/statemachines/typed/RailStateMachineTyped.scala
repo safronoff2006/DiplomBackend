@@ -50,7 +50,6 @@ class  RailStateMachineTyped(context: ActorContext[StateMachineCommand],stateSto
 
   override def register(name: String): Unit = stateStorage.addT(name, context.self)
 
-  override def cardResponse(param: String): Unit = {}
 
   override def getState: Option[StatePlatform]  = state.getState
 
@@ -68,6 +67,8 @@ class  RailStateMachineTyped(context: ActorContext[StateMachineCommand],stateSto
       case GetState =>
         log.info("onMessage", "GetState", getState)
         Behaviors.same
+
+      case _ =>   Behaviors.same
     }
   }
 

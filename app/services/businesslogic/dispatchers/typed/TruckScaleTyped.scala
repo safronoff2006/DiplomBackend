@@ -5,10 +5,10 @@ import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
 import models.extractors.Protocol2NoCard.NoCard
 import models.extractors.Protocol2WithCard.WithCard
 import play.api.Logger
-import services.businesslogic.channelparsers.oldrealisation.Parser.PatternInfo
-import services.businesslogic.channelparsers.typed.ParserTyped.{MessageToParse, ParserCommand, SetDispatcher, SetPattern}
-import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.PhisicalObjectEvent
-import services.businesslogic.statemachines.oldrealisation.StateMachine
+
+import services.businesslogic.channelparsers.typed.ParserTyped._
+import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.{PhisicalObjectEvent}
+import services.businesslogic.statemachines.typed.StateMachineTyped._
 import services.storage.GlobalStorage
 import services.storage.GlobalStorage.{CreateTruckScaleDispatcher, MainBehaviorCommand}
 
@@ -19,14 +19,13 @@ object TruckScaleTyped {
 }
 
 
-class TruckScaleWrapper @Inject()( //@Named("AutoParser") parser: Parser,
+class TruckScaleWrapper @Inject()(
  @Named("AutoParserA") parser: ActorRef[ParserCommand],
- @Named("AutoStateMachine") stateMachine: StateMachine,
+ @Named("AutoStateMachineA")  stateMachine: ActorRef[StateMachineCommand] ,
  @Named("AutoMainPatternInfo") mainProtocolPattern: PatternInfo)
   extends PhisicalObjectWraper(
-    //parser: Parser,
     parser: ActorRef[ParserCommand],
-    stateMachine: StateMachine,
+    stateMachine: ActorRef[StateMachineCommand] ,
     mainProtocolPattern: PatternInfo) {
 
   private val logger: Logger = Logger(this.getClass)
@@ -51,42 +50,40 @@ class TruckScaleWrapper @Inject()( //@Named("AutoParser") parser: Parser,
 
 
 class TruckScaleTyped(context: ActorContext[PhisicalObjectEvent],
-                      //parser: Parser,
                       parser: ActorRef[ParserCommand],
-                      stateMachine: StateMachine,
+                      stateMachine: ActorRef[StateMachineCommand],
                       mainProtocolPattern: PatternInfo)
   extends PhisicalObjectTyped(context,
-    //parser: Parser,
     parser: ActorRef[ParserCommand],
-    stateMachine: StateMachine,
+    stateMachine: ActorRef[StateMachineCommand] ,
     mainProtocolPattern: PatternInfo) {
 
 
   log.info(s"Создан диспетчер TruckScale   ${context.self}")
-//  parser.setDispatcherT(context.self)
-//  parser.setPattern(mainProtocolPattern)
 
   parser ! SetDispatcher(context.self)
   parser ! SetPattern(mainProtocolPattern)
 
   override def onMessage(msg: PhisicalObjectEvent): Behavior[PhisicalObjectEvent] = {
     msg match {
-      case PhisicalObjectTyped.CardResponse(phisicalObject) => stateMachine.cardResponse(phisicalObject)
+      case PhisicalObjectTyped.CardResponse(phisicalObject) =>
+        stateMachine ! CardRespToState(phisicalObject)
         Behaviors.same
       case PhisicalObjectTyped.NameEvent(n: String) =>
         setName(n)
         log.info(s"Диспетчер именован: $name")
-        stateMachine.name = n
+        stateMachine ! Name(n)
         Behaviors.same
       case PhisicalObjectTyped.PrintNameEvent(prefix) => log.info(s"$prefix назначен диспетчер физических объектов $name")
         Behaviors.same
       case obj: PhisicalObjectTyped.TcpMessageEvent =>
-        //parser.sendToParser(obj.message)
         parser ! MessageToParse(obj.message)
         Behaviors.same
-      case obj: NoCard => stateMachine.protocolMessage(obj)
+      case obj: NoCard =>
+        stateMachine ! ProtocolExecute(obj)
         Behaviors.same
-      case obj: WithCard => stateMachine.protocolMessage(obj)
+      case obj: WithCard =>
+        stateMachine ! ProtocolExecute(obj)
         Behaviors.same
       case _ => Behaviors.same
     }
