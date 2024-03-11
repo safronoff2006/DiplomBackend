@@ -4,6 +4,7 @@ import akka.actor.ActorSystem
 import akka.io.Tcp
 import akka.util.ByteString
 import models.configs.Serverconf
+import models.readerswriters.WebModels.WebModelsWritesReads
 import net.tcp._
 import play.api.inject.{ApplicationLifecycle, Injector}
 import play.api.libs.json.{JsValue, Json}
@@ -28,7 +29,7 @@ class ApplicationStartDebug @Inject()(lifecycle: ApplicationLifecycle, environme
                                       injector: Injector, config: Configuration,tcpBuilder: TcpServerBuilder,
                                       implicit val system: ActorSystem, tcpClientsManager: TestTcpClientsManager,
                                       dispatchers: PhisicalObjectsManager)
-  extends InterfaceStart with TcpClientOwner {
+  extends InterfaceStart with TcpClientOwner with WebModelsWritesReads {
 
   val logger: Logger = Logger(this.getClass)
   logger.info("Отладочная реализация ApplicationStart")
@@ -77,6 +78,12 @@ class ApplicationStartDebug @Inject()(lifecycle: ApplicationLifecycle, environme
       Play.stop(injector.instanceOf[Application])
   }
 
+//  val per: PerimetersSerialized = Perimeters('+','+','-','-')
+//  private val jsPer =  Json.toJson(per)
+//  println(s"jsPer    $jsPer")
+//
+//  private val serData: JsValue = Json.toJson(StatePlatformSerialized(10, "rail", per))
+//  println(s"serData    $serData")
 
   //чтение основной конфигурации сервера
   if (config.has("serverconf")) {

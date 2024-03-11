@@ -17,7 +17,7 @@ lazy val root = (project in file(".")).enablePlugins(PlayScala).settings(
     specs2 % Test,
   ),
 
-  scalacOptions ++= List("-encoding", "utf8", "-deprecation", "-feature", "-unchecked", "-Xfatal-warnings"),
+  scalacOptions ++= List("-encoding", "utf8", "-deprecation", "-feature", "-unchecked", "-Xfatal-warnings", "-language:implicitConversions"),
   javacOptions ++= List("-Xlint:unchecked", "-Xlint:deprecation", "-Werror")
 )
 

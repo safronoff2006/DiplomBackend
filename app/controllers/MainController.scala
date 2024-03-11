@@ -3,6 +3,7 @@ package controllers
 import executioncontexts.CustomBlockingExecutionContext
 import models.readerswriters.CardModel
 import models.readerswriters.CardModel.CardModelWritesReads
+import models.readerswriters.WebModels.WebModelsWritesReads
 import models.readerswriters.WorkplaceModel.WorkplaceModelWritesReads
 import play.api._
 import play.api.libs.json.{JsArray, JsString, JsValue, Json}
@@ -26,7 +27,7 @@ import scala.util.{Failure, Success, Try}
 class MainController @Inject()(val cc: ControllerComponents, stateStorage: StateMachinesStorage,
                                phisManager: PhisicalObjectsManager, globalStor: GlobalStorage)
                               (implicit ex: CustomBlockingExecutionContext)
-  extends AbstractController(cc) with CardModelWritesReads with WorkplaceModelWritesReads {
+  extends AbstractController(cc) with CardModelWritesReads with WorkplaceModelWritesReads with WebModelsWritesReads {
 
 
 
@@ -45,30 +46,17 @@ class MainController @Inject()(val cc: ControllerComponents, stateStorage: State
           val state: StatePlatform = pair._1
 
           state match {
-            case StateAutoPlatform(perimeters, weight, svetofor) => Json.obj(
-              "indx" -> indx,
-              "type" -> "auto",
-              "weight" -> weight,
-              "perimeters" -> Json.obj(
-                "in" -> perimeters.in.toString,
-                "out" -> perimeters.out.toString,
-                "left" -> perimeters.left.toString,
-                "right" -> perimeters.right.toString
-              ),
-              "svetofor" -> svetofor
-              )
-            case StateRailPlatform(weight) => Json.obj(
-              "indx" -> indx,
-              "type" -> "auto",
-              "weight" -> weight,
-              "perimeters" -> Json.obj(
-                "in" -> "?",
-                "out" -> "?",
-                "left" -> "?",
-                "right" -> "?"
-              )
+            case StateAutoPlatform(perimeters, weight, svetofor) =>
+              val serializedData: StatePlatformSerializedWithIndexWithSvetofor =
+                StatePlatformSerializedWithIndexWithSvetofor(weight, "auto", PerimetersSerialized(perimeters), indx, svetofor)
+                Json.toJson(serializedData)
 
-            )
+
+            case StateRailPlatform(weight) =>
+              val serializedData: StatePlatformWithIndexSerialized =
+                StatePlatformWithIndexSerialized(weight, "rail" , PerimetersSerialized("?", "?", "?", "?"), indx)
+                Json.toJson(serializedData)
+
             case _ => Json.obj("presentation" -> state.toString)
           }
 
@@ -88,27 +76,16 @@ class MainController @Inject()(val cc: ControllerComponents, stateStorage: State
         val name: String = x._1
 
        val stateJson = state match {
-          case StateAutoPlatform(perimeters, weight, svetofor) => Json.obj(
-            "type" -> "auto",
-            "weight" -> weight,
-            "perimeters" -> Json.obj(
-              "in" -> perimeters.in.toString,
-              "out" -> perimeters.out.toString,
-              "left" -> perimeters.left.toString,
-              "right" -> perimeters.right.toString
-            ),
-            "svetofor" -> svetofor
-          )
-          case StateRailPlatform(weight) => Json.obj(
-            "type" -> "rail",
-            "weight" -> weight,
-            "perimeters" -> Json.obj(
-              "in" -> "?",
-              "out" -> "?",
-              "left" -> "?",
-              "right" -> "?"
-            )
-          )
+          case StateAutoPlatform(perimeters, weight, svetofor) =>
+            val serializedData: StatePlatformSerializedWithSvetofor =
+              StatePlatformSerializedWithSvetofor(weight, "auto", PerimetersSerialized(perimeters), svetofor)
+              Json.toJson(serializedData)
+
+          case StateRailPlatform(weight) =>
+            val serializedData: StatePlatformSerialized =
+              StatePlatformSerialized(weight, "rail" , PerimetersSerialized("?", "?", "?", "?"))
+              Json.toJson(serializedData)
+
           case _ => Json.obj("presentation" -> state.toString)
         }
 
