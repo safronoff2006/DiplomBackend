@@ -33,7 +33,7 @@ class TruckScaleWrapper @Inject()(
 
   val optsys: Option[ActorSystem[MainBehaviorCommand]] = GlobalStorage.getSys
 
-  val trySys = Try {
+  val trySys: Try[ActorSystem[MainBehaviorCommand]] = Try {
 
     val sys: ActorSystem[MainBehaviorCommand] = optsys match {
       case Some(v) =>

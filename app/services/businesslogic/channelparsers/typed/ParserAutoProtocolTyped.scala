@@ -22,7 +22,7 @@ class ParserAutoProtocolWraper() extends ParserWraper {
   logger.info("Создан ParserAutoProtocolWraper")
 
   val optsys: Option[ActorSystem[MainBehaviorCommand]] = GlobalStorage.getSys
-  val trySys = Try {
+  val trySys: Try[ActorSystem[MainBehaviorCommand]] = Try {
 
     val sys: ActorSystem[MainBehaviorCommand] = optsys match {
       case Some(v) =>
@@ -43,11 +43,10 @@ class ParserAutoProtocolWraper() extends ParserWraper {
       case Failure(exception) =>
         logger.error(exception.getMessage)
         ""
-      case Success(sys) => {
+      case Success(sys) =>
         val id: String = java.util.UUID.randomUUID.toString
         sys ! CreateAutoProtocolParser(id)
         id
-      }
     }
 
   }
