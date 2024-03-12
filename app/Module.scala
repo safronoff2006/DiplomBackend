@@ -1,5 +1,5 @@
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
+import akka.actor.typed.{ActorRef, ActorSystem, Behavior, MailboxSelector}
 import com.google.inject.name.Names
 import com.google.inject.{AbstractModule, Provides}
 import com.typesafe.config.ConfigFactory
@@ -82,7 +82,9 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
               new AutoStateMachineTyped(ctx, nameCardPattern, stateStorage, convertEmMarine, cardTimeout)
             }
 
-            val ref = context.spawn(actorStateMachineBehavior, id)
+            val props = MailboxSelector.fromConfig("mailboxes.state-machine-mailbox")
+            val ref = context.spawn(actorStateMachineBehavior, id, props)
+
             context.log.info(s"Create actorStateMachine $id")
             GlobalStorage.setRefSM(id, ref)
             Behaviors.same
@@ -91,8 +93,8 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
             val actorStateMachineBehavior: Behavior[StateMachineCommand] = Behaviors.setup[StateMachineCommand] { ctx =>
               new RailStateMachineTyped(ctx, stateStorage)
             }
-
-            val ref = context.spawn(actorStateMachineBehavior, id)
+            val props = MailboxSelector.fromConfig("mailboxes.state-machine-mailbox")
+            val ref = context.spawn(actorStateMachineBehavior, id, props)
             context.log.info(s"Create actorStateMachine $id")
             GlobalStorage.setRefSM(id, ref)
             Behaviors.same

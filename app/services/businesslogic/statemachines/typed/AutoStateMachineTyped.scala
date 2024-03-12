@@ -15,7 +15,7 @@ import utils.{AtomicOption, EmMarineConvert}
 
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.DurationLong
 import scala.language.postfixOps
 import scala.util.{Failure, Success, Try}
 
@@ -197,7 +197,7 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
 
     context.log.info("Create timeout Behavior")
 
-    timers.startSingleTimer(Timeout, 3 second)
+    timers.startSingleTimer(Timeout, cardTimeout second)
     Behaviors.receiveMessagePartial {
       case Flush =>
         loger.info("timeout  Flush", "Flush")
