@@ -15,6 +15,7 @@ lazy val root = (project in file(".")).enablePlugins(PlayScala).settings(
     "commons-codec" % "commons-codec" % "1.16.0",
 
     specs2 % Test,
+    "com.typesafe.akka" %% "akka-stream-typed" %  play.core.PlayVersion.akkaVersion,
   ),
 
   scalacOptions ++= List("-encoding", "utf8", "-deprecation", "-feature", "-unchecked", "-Xfatal-warnings", "-language:implicitConversions"),

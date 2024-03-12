@@ -3,7 +3,7 @@ package services.storage
 import akka.actor.typed.ActorRef
 import play.api.Logger
 import services.businesslogic.statemachines.oldrealisation.StateMachine
-import services.businesslogic.statemachines.typed.StateMachineTyped.{StateMachineCommand, StatePlatform}
+import services.businesslogic.statemachines.typed.StateMachineTyped.{ StateMachineCommand, StatePlatform}
 import services.storage.StateMachinesStorage.StateMachineAddException
 
 import java.util.concurrent.ConcurrentHashMap

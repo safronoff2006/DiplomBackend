@@ -1,7 +1,7 @@
 package services.businesslogic.statemachines.typed
 
-import akka.actor.typed.{ActorSystem, Behavior}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
+import akka.actor.typed.{ActorSystem, Behavior}
 import com.google.inject.name.Named
 import models.extractors.NoCardOrWithCard
 import models.extractors.Protocol2NoCard.{NoCard, patternPerimeters}
@@ -9,7 +9,7 @@ import models.extractors.Protocol2WithCard.WithCard
 import play.api.Logger
 import services.businesslogic.statemachines.typed.AutoStateMachineTyped.{Perimeters, StateAutoPlatform}
 import services.businesslogic.statemachines.typed.StateMachineTyped._
-import services.storage.GlobalStorage.MainBehaviorCommand
+import services.storage.GlobalStorage.{CreateAutoStateMachine, MainBehaviorCommand}
 import services.storage.{GlobalStorage, StateMachinesStorage}
 import utils.{AtomicOption, EmMarineConvert}
 
@@ -17,8 +17,6 @@ import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
-import services.storage.GlobalStorage.CreateAutoStateMachine
-
 import scala.util.{Failure, Success, Try}
 
 object AutoStateMachineTyped {
@@ -37,22 +35,21 @@ object AutoStateMachineTyped {
         p
 
       } match {
-        case Failure(exception) =>  StateAutoPlatform(Perimeters('?', '?', '?', '?'), weight, svetofor)
-        case Success(p) =>  StateAutoPlatform(p, weight, svetofor)
+        case Failure(exception) => StateAutoPlatform(Perimeters('?', '?', '?', '?'), weight, svetofor)
+        case Success(p) => StateAutoPlatform(p, weight, svetofor)
       }
     }
   }
 }
 
-class AutoStateMachineWraper @Inject()( @Named("CardPatternName") nameCardPattern: String,
-                                        stateStorage: StateMachinesStorage,
-                                        @Named("ConvertEmMarine") convertEmMarine: Boolean,
-                                        @Named("CardTimeout") cardTimeout: Long
+class AutoStateMachineWraper @Inject()(@Named("CardPatternName") nameCardPattern: String,
+                                       stateStorage: StateMachinesStorage,
+                                       @Named("ConvertEmMarine") convertEmMarine: Boolean,
+                                       @Named("CardTimeout") cardTimeout: Long
                                       ) extends StateMachineWraper {
 
   private val logger: Logger = Logger(this.getClass)
   logger.info("Создан AutoStateMachineWraper")
-
 
 
   val optsys: Option[ActorSystem[MainBehaviorCommand]] = GlobalStorage.getSys
@@ -69,6 +66,7 @@ class AutoStateMachineWraper @Inject()( @Named("CardPatternName") nameCardPatter
     }
     sys
   }
+
   override def create(): String = {
     trySys match {
       case Failure(exception) =>
@@ -90,8 +88,8 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
                             cardTimeout: Long
                            ) extends StateMachineTyped(context: ActorContext[StateMachineCommand]) {
 
-  log.info("Создан актор -  стейт машина AutoStateMachine")
-  log.info(s"Паттерн карт: $nameCardPattern")
+  loger.info("Создан актор -  стейт машина AutoStateMachine")
+  loger.info(s"Паттерн карт: $nameCardPattern")
 
   override def register(name: String): Unit = stateStorage.addT(name, context.self)
 
@@ -101,7 +99,7 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
   //проанализировал - внутренний
   private def processingCard(): Unit = {
     workedCard.getState match {
-      case Some(card) => log.info(s"Процессинг карты $card")
+      case Some(card) => loger.info(s"Процессинг карты $card")
       case None =>
 
     }
@@ -119,18 +117,12 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
       workedCard.setState(Some(formatedCard))
       processingCard()
     } else {
-      log.warn(s"$name - Card processing Busy")
+      loger.warn(s"$name - Card processing Busy")
     }
   }
 
   private val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss SSS")
 
-
-  //должно вызываться из кейса сообщения СardResponse
-  //override def cardResponse(param: String): Unit = {
-  ///  log.info(s"$name  Обработка карты завершена. Параметр $param.")
-  //  context.self ! Flush
-  //}
 
   //должно вызываться из кейса сообщения GetState
   override def getState: Option[StatePlatform] = state.getState
@@ -165,27 +157,35 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
     msg match {
       case Name(n) =>
         name = n
-        log.info("onMessage","Name")
+        loger.info("onMessage", "Name")
         work()
       case _ => Behaviors.same
     }
   }
 
   private def work(): Behavior[StateMachineCommand] = Behaviors.receiveMessage[StateMachineCommand] { message =>
-
     context.log.info("Create work Behavior")
-
     message match {
-      case ProtocolExecute(message) => protocolExecute(message)
-        log.info(s"work ProtocolExecute  $name", "ProtocolExecute")
+      case ProtocolExecute(mess) => protocolExecute(mess)
+        loger.info(s"work ProtocolExecute  $name", "ProtocolExecute")
+        val respSend = StreamFeeder.send(ProtocolExecuteWithName(mess,name))
+        respSend match {
+          case Left(exp) => context.log.error(exp.getMessage)
+          case Right(value) => context.log.info(s"Send to stream: $value")
+        }
         work()
 
       case CardExecute(card) =>
-        log.info(s"work CardExecute  $name", "CardExecute")
+        loger.info(s"work CardExecute  $name", "CardExecute")
+        val respSend = StreamFeeder.send(CardExecuteWithName(card, name))
+        respSend match {
+          case Left(exp) => context.log.error(exp.getMessage)
+          case Right(value) => context.log.info(s"Send to stream: $value")
+        }
         withready()
 
       case GetState =>
-        log.info(s"work GetState $name    $getState", "GetState", "getState")
+        loger.info(s"work GetState $name    $getState", "GetState", "getState")
         work()
 
       case _ => Behaviors.same
@@ -199,30 +199,44 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
 
     timers.startSingleTimer(Timeout, 3 second)
     Behaviors.receiveMessagePartial {
-
       case Flush =>
-        log.info("timeout  Flush", "Flush")
+        loger.info("timeout  Flush", "Flush")
         workedCard.setState(None)
         cardProcessingBusy = false
         work()
 
-      case Timeout =>
-        log.warn("timeout  Timeout!!!!!!", "Timeout")
+      case message@Timeout =>
+        loger.warn("timeout  Timeout!!!!!!", "Timeout")
         workedCard.setState(None)
         cardProcessingBusy = false
+        val respSend = StreamFeeder.send(TimeoutWithName(name))
+        respSend match {
+          case Left(exp) => context.log.error(exp.getMessage)
+          case Right(value) => context.log.info(s"Send to stream: $value")
+        }
         work()
 
-      case ProtocolExecute(message) => protocolExecute(message)
-        log.info(s"timeout ProtocolExecute  $name", "ProtocolExecute")
+      case message@ProtocolExecute(mess) => protocolExecute(mess)
+        loger.info(s"timeout ProtocolExecute  $name", "ProtocolExecute")
+        val respSend = StreamFeeder.send(ProtocolExecuteWithName(mess,name))
+        respSend match {
+          case Left(exp) => context.log.error(exp.getMessage)
+          case Right(value) => context.log.info(s"Send to stream: $value")
+        }
         withready()
 
       case GetState =>
-        log.info(s"timeout GetState $name    $getState", "GetState", "getState")
+        loger.info(s"timeout GetState $name    $getState", "GetState", "getState")
         withready()
 
 
-      case CardRespToState(param) =>
-        log.info(s"timeout  CardRespToState  $name  Обработка карты завершена. Параметр $param.")
+      case message@CardRespToState(param) =>
+        loger.info(s"timeout  CardRespToState  $name  Обработка карты завершена. Параметр $param.")
+        val respSend = StreamFeeder.send(CardRespToStateWithName(param, name))
+        respSend match {
+          case Left(exp) => context.log.error(exp.getMessage)
+          case Right(value) => context.log.info(s"Send to stream: $value")
+        }
         workedCard.setState(None)
         cardProcessingBusy = false
         work()

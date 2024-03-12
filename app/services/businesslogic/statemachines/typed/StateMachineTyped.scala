@@ -1,29 +1,143 @@
 package services.businesslogic.statemachines.typed
 
-import akka.actor.typed.{Behavior, PostStop, Signal}
-import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext}
+import akka.NotUsed
+import akka.actor.typed._
+import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
+import akka.stream.CompletionStrategy
+import akka.stream.scaladsl.{Broadcast, Flow, Sink, Source}
+import akka.stream.typed.scaladsl.ActorSource
 import models.extractors.NoCardOrWithCard
 import org.slf4j.Logger
-import services.businesslogic.statemachines.typed.StateMachineTyped.StatePlatform
-import services.businesslogic.statemachines.typed.StateMachineTyped.StateMachineCommand
+import services.businesslogic.statemachines.typed.StateMachineTyped.{StateMachineCommand, StatePlatform, StreamFeeder}
 
 object StateMachineTyped {
   trait StatePlatform
 
   trait StateMachineCommand
 
+
+
   case class Name(name: String) extends StateMachineCommand
+
   case class ProtocolExecute(message: NoCardOrWithCard) extends StateMachineCommand
+  case class ProtocolExecuteWithName(message: NoCardOrWithCard, name: String) extends StateMachineCommand {
+    def apply(obj: ProtocolExecute, name: String): ProtocolExecuteWithName = ProtocolExecuteWithName(obj.message, name)
+  }
+
   case class CardExecute(card: String) extends StateMachineCommand
+  case class CardExecuteWithName(card: String, name: String) extends StateMachineCommand {
+    def apply(obj: CardExecute, name: String): CardExecuteWithName = CardExecuteWithName(obj.card, name)
+  }
+
   case class CardRespToState(param: String) extends StateMachineCommand
+  case class CardRespToStateWithName(param: String, name: String) extends StateMachineCommand {
+    def apply(obj: CardRespToState, name: String): CardRespToStateWithName = CardRespToStateWithName(obj.param, name)
+  }
+
 
   case object GetState extends StateMachineCommand
 
   case object Flush extends StateMachineCommand
 
   case object Timeout extends StateMachineCommand
+  case class  TimeoutWithName(name:String) extends StateMachineCommand
+
+
+  object StreamFeeder {
+
+
+    private case object First extends StateMachineCommand
+
+    case object Emitted
+
+    sealed trait EventStream
+
+
+    private case class Element(content: StateMachineCommand) extends EventStream
+
+    private case object ReachedEnd extends EventStream
+
+    private case class FailureOccured(ex: Exception) extends EventStream
+
+
+
+    private var optStreamActor: Option[ActorRef[EventStream]] = None
+
+    private def runStream(ackReceiver: ActorRef[Emitted.type])(implicit system: ActorSystem[_]): ActorRef[EventStream] = {
+      val source: Source[EventStream, ActorRef[EventStream]] =
+        ActorSource.actorRefWithBackpressure[EventStream, Emitted.type](
+          // get demand signalled to this actor receiving Ack
+          ackTo = ackReceiver,
+          ackMessage = Emitted,
+          // complete when we send ReachedEnd
+          completionMatcher = {
+            case ReachedEnd => CompletionStrategy.draining
+          },
+          failureMatcher = {
+            case FailureOccured(ex) => ex
+          })
+
+      val sourceCommand: Source[StateMachineCommand, ActorRef[EventStream]] = source
+        .collect {
+          case Element(msg) => msg
+        }
+
+
+      val sinkStates: Sink[StateMachineCommand,NotUsed] =   Flow[StateMachineCommand].filter {
+        case s: ProtocolExecuteWithName => true
+        case _ => false
+      }.to(Sink.foreach(x => system.log.info(s"Принято в KAFKA топик States: ${x.toString}")))
+
+      val sinkCards: Sink[StateMachineCommand, NotUsed] = Flow[StateMachineCommand].filter {
+        case _: CardExecuteWithName => true
+        case _: CardRespToStateWithName => true
+        case _: TimeoutWithName => true
+        case _ => false
+      }.to( Sink.foreach(x => system.log.info(s"Принято в KAFKA топик Cards: ${x.toString}")))
+
+      val sink = Sink.combine(sinkStates, sinkCards)(Broadcast[StateMachineCommand](_))
+
+      val streamActor: ActorRef[EventStream] = sourceCommand
+        .to(sink)
+        .run()
+
+
+      streamActor
+    }
+
+    def send(data: StateMachineCommand, optStreamSource: Option[ActorRef[EventStream]]  = None): Either[Throwable, StateMachineCommand] = {
+      optStreamSource match {
+        case Some(ref) =>
+          ref ! Element(data)
+          Right(data)
+        case None => optStreamActor match {
+          case Some(ref) =>
+            ref ! Element(data)
+            Right(data)
+          case None => Left(new Exception("Не установлен StreamSource"))
+        }
+      }
+    }
+
+    def apply(): Behavior[Emitted.type] = Behaviors.setup { context =>
+      val streamActor: ActorRef[EventStream] = runStream(context.self)(context.system)
+      optStreamActor = Some(streamActor)
+      context.log.info("Create stream actor")
+      val resultSend  = send(First, optStreamActor)
+      resultSend match {
+        case Left(exc) => context.log.error(exc.getMessage)
+        case Right(value) => context.log.info(s"Send to stream: $value")
+      }
+      Behaviors.same
+    }
+
+
+  }
+
 
 }
+
+
 
 
 abstract class StateMachineWraper(){
@@ -33,8 +147,10 @@ abstract class StateMachineWraper(){
 abstract class StateMachineTyped(context: ActorContext[StateMachineCommand])
   extends AbstractBehavior[StateMachineCommand](context){
 
-  protected val log: Logger = context.log
-  log.info("Hello from StateMachineTyped!!!")
+  protected val loger: Logger = context.log
+  loger.info("Hello from StateMachineTyped!!!")
+
+
 
   private[this] var _name: String = ""
 
@@ -63,10 +179,13 @@ abstract class StateMachineTyped(context: ActorContext[StateMachineCommand])
 
   override def onSignal: PartialFunction[Signal, Behavior[StateMachineCommand]] =  {
     case PostStop =>
-      log.info("StateMachineTyped actor stopped")
+      loger.info("StateMachineTyped actor stopped")
       this
 
   }
 
   override def onMessage(msg: StateMachineCommand): Behavior[StateMachineCommand] = ???
+
+  ActorSystem(StreamFeeder(), "stream-feeder")
+
 }

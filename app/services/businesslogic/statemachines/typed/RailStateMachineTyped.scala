@@ -59,7 +59,7 @@ class RailStateMachineWraper @Inject()(stateStorage: StateMachinesStorage) exten
 class  RailStateMachineTyped(context: ActorContext[StateMachineCommand],stateStorage: StateMachinesStorage)
   extends StateMachineTyped(context: ActorContext[StateMachineCommand]) {
 
-  log.info("Создан актор -  стейт машина RailStateMachineTyped")
+  loger.info("Создан актор -  стейт машина RailStateMachineTyped")
   private val state: AtomicOption[StateRailPlatform] = new AtomicOption(None)
 
   override def register(name: String): Unit = stateStorage.addT(name, context.self)
@@ -71,15 +71,21 @@ class  RailStateMachineTyped(context: ActorContext[StateMachineCommand],stateSto
     msg match {
       case Name(n) =>
         name = n
-        log.info("onMessage","Name")
+        loger.info("onMessage","Name")
         Behaviors.same
 
       case ProtocolExecute(message) => protocolExecute(message)
-        log.info("onMessage", "ProtocolExecute")
+        loger.info("onMessage", "ProtocolExecute")
+        val respSend = StreamFeeder.send(ProtocolExecuteWithName(message, name) )
+
+        respSend match {
+          case Left(exp) => context.log.error(exp.getMessage)
+          case Right(value) => context.log.info(s"Send to stream: $value")
+        }
         Behaviors.same
 
       case GetState =>
-        log.info("onMessage", "GetState", getState)
+        loger.info("onMessage", "GetState", getState)
         Behaviors.same
 
       case _ =>   Behaviors.same
