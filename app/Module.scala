@@ -8,6 +8,7 @@ import models.configs.ProtocolsConf
 import net.NetWorker
 import net.tcp.{TcpServer, TcpServerBuilder}
 import net.udp.UdpServerManager
+import net.websocket.WebSocketActor
 import play.api.Logger
 import play.api.inject.Injector
 import play.api.libs.concurrent.AkkaGuiceSupport
@@ -210,6 +211,8 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
 
     bind(classOf[NetWorker]).asEagerSingleton()
     bind(classOf[UdpServerManager]).asEagerSingleton()
+
+    bindActorFactory[WebSocketActor, WebSocketActor.Factory]
 
 
 

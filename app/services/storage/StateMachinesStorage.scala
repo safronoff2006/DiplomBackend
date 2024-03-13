@@ -35,8 +35,6 @@ class StateMachinesStorage {
 
 
 
-
-
   //новое под акторы
   private val storageT: ConcurrentHashMap[String, ActorRef[StateMachineCommand]] = new ConcurrentHashMap()
 

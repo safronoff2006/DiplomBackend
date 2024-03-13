@@ -14,7 +14,12 @@ GET     /getState                   controllers.MainController.getState(name:Str
 GET     /getListStates              controllers.MainController.getListStates(name: List[String])
 GET     /getValidNames              controllers.MainController.getValidNames
 
-
++ nocsrf
 POST    /cardData                   controllers.MainController.card
+
++ nocsrf
 POST    /workplacePing              controllers.MainController.workplacePing
+
+GET     /websocket                  controllers.WebSocketController.socket
+
 

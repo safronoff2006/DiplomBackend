@@ -1,9 +1,13 @@
 package models.readerswriters
 
+import models.extractors.Protocol2NoCard.NoCard
+import models.extractors.Protocol2WithCard.WithCard
+import models.extractors.ProtocolRail.RailWeight
 import play.api.Logger
 import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
-import play.api.libs.json.{JsPath, Writes}
+import play.api.libs.json._
 import services.businesslogic.statemachines.typed.AutoStateMachineTyped.Perimeters
+import services.businesslogic.statemachines.typed.StateMachineTyped.ProtocolExecuteWithName
 
 import scala.language.implicitConversions
 
@@ -79,7 +83,48 @@ object WebModels {
       )(unlift(StatePlatformSerializedWithIndexWithSvetofor.unapply))
 
 
+    implicit val NoCardWrites: Writes[NoCard] = (
+      (JsPath \ "prefix").write[String] and
+        (JsPath \ "perimeters").write[String] and
+        (JsPath \ "weight").write[String] and
+        (JsPath \ "crc").write[String] and
+        (JsPath \ "svetofor").write[String]
+    ) (unlift (NoCard.unapply))
 
+
+    implicit val WithCardWrites: Writes[WithCard] = (
+      (JsPath \ "prefix").write[String] and
+        (JsPath \ "perimeters").write[String] and
+        (JsPath \ "weight").write[String] and
+        (JsPath \ "crc").write[String] and
+        (JsPath \ "card").write[String] and
+        (JsPath \ "typeCard").write[String] and
+        (JsPath \ "svetofor").write[String]
+      )(unlift(WithCard.unapply))
+
+
+    implicit val RailWeightWrites: Writes[RailWeight] = (
+      (JsPath \ "prefix").write[String] and
+        (JsPath \ "weight").write[String]
+      ) (unlift (RailWeight.unapply))
+
+
+
+    implicit def protocolExecuteWithNameToJson(obj: ProtocolExecuteWithName): JsValue = {
+      val jsMessage: JsValue = obj.message match {
+        case obj: NoCard => Json.toJson(obj)
+        case obj: RailWeight => Json.toJson(obj)
+        case obj: WithCard => Json.toJson(obj)
+        case _ => Json.obj(
+          "type" -> "error",
+          "errorMessage" -> "Неверный подкласс  NoCardOrWithCard"
+        )
+      }
+        Json.obj(
+          "message" -> jsMessage,
+          "name" -> obj.name
+        )
+    }
 
 
   }

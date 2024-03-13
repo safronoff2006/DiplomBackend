@@ -46,6 +46,7 @@ import scala.util.matching.Regex
 }
 
   trait NoCardOrWithCard
+
   object Protocol2NoCard extends Protocol {
   case class NoCard(prefix: String, perimeters: String, weight: String, crc: String, svetofor: String) extends NoCardOrWithCard with PhisicalObjectEvent
 

@@ -1,14 +1,16 @@
 package services.storage
 
 import akka.actor.typed.{ActorRef, ActorSystem}
+import controllers.WebSocketController.MapWsType
+import models.connection.WebSocketConection
 import play.api.Logger
-import services.businesslogic.channelparsers.typed.ParserTyped.PatternInfo
-import services.businesslogic.channelparsers.typed.ParserTyped.ParserCommand
+import services.businesslogic.channelparsers.typed.ParserTyped.{ParserCommand, PatternInfo}
 import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.PhisicalObjectEvent
 import services.businesslogic.statemachines.typed.StateMachineTyped.StateMachineCommand
 
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Singleton
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 @Singleton
 class GlobalStorage {
@@ -89,5 +91,21 @@ object GlobalStorage {
   def setRefSM(id: String, ref: ActorRef[StateMachineCommand]): ActorRef[StateMachineCommand] = stateMachineMap.put(id, ref)
 
   def getRefSM(id: String): Option[ActorRef[StateMachineCommand]] = if (stateMachineMap.containsKey(id)) Some(stateMachineMap.get(id)) else None
+
+  private val connections: MapWsType = new MapWsType()
+
+  def setConnection(id: String, connection: WebSocketConection): WebSocketConection = 
+    connections.put(id, connection)
+    
+  def getConnection(id: String): Option[WebSocketConection] = if (connections.containsKey(id)) Some(connections.get(id)) else None
+  
+  private def getAllConnections: List[(String, WebSocketConection)] = connections.entrySet().asScala.map(x => x.getKey -> x.getValue).toList
+
+  def removeConnection(id: String): Unit = if (connections.containsKey(id)) connections.remove(id)
+
+  def sendToAllConnection(message: String): Unit = {
+    getAllConnections.foreach{ connPair => connPair._2.out ! message
+    }
+  }
 
 }

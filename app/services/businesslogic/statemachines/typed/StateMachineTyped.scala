@@ -7,8 +7,11 @@ import akka.stream.CompletionStrategy
 import akka.stream.scaladsl.{Broadcast, Flow, Sink, Source}
 import akka.stream.typed.scaladsl.ActorSource
 import models.extractors.NoCardOrWithCard
+import models.readerswriters.WebModels.WebModelsWritesReads
 import org.slf4j.Logger
+import play.api.libs.json.JsValue
 import services.businesslogic.statemachines.typed.StateMachineTyped.{StateMachineCommand, StatePlatform, StreamFeeder}
+import services.storage.GlobalStorage
 
 object StateMachineTyped {
   trait StatePlatform
@@ -43,7 +46,7 @@ object StateMachineTyped {
   case class  TimeoutWithName(name:String) extends StateMachineCommand
 
 
-  object StreamFeeder {
+  object StreamFeeder extends WebModelsWritesReads {
 
 
     private case object First extends StateMachineCommand
@@ -86,7 +89,21 @@ object StateMachineTyped {
       val sinkStates: Sink[StateMachineCommand,NotUsed] =   Flow[StateMachineCommand].filter {
         case s: ProtocolExecuteWithName => true
         case _ => false
-      }.to(Sink.foreach(x => system.log.info(s"Принято в KAFKA топик States: ${x.toString}")))
+      }.to(Sink.foreach { x =>
+        system.log.info(s"Принято в KAFKA топик States: ${x.toString}")
+      })
+
+      val flowFilterState: Flow[StateMachineCommand, StateMachineCommand, NotUsed] = Flow[StateMachineCommand].filter {
+        case s: ProtocolExecuteWithName => true
+        case _ => false
+      }
+
+      val flowConverFilteredToJson: Flow[StateMachineCommand, String, NotUsed] = flowFilterState.map {
+        case s: ProtocolExecuteWithName =>
+          val json: JsValue = s
+          json.toString()
+        case _ => "{ \"type\":\"error\",  \"errorMessage\":\"Неверный класс для конвертации в JSON\" }"
+      }
 
       val sinkCards: Sink[StateMachineCommand, NotUsed] = Flow[StateMachineCommand].filter {
         case _: CardExecuteWithName => true
@@ -95,7 +112,10 @@ object StateMachineTyped {
         case _ => false
       }.to( Sink.foreach(x => system.log.info(s"Принято в KAFKA топик Cards: ${x.toString}")))
 
-      val sink = Sink.combine(sinkStates, sinkCards)(Broadcast[StateMachineCommand](_))
+
+      val sinkWemSocket: Sink[StateMachineCommand, NotUsed] = flowConverFilteredToJson.to(Sink.foreach(x => GlobalStorage.sendToAllConnection(x)))
+
+      val sink = Sink.combine(sinkStates, sinkCards, sinkWemSocket)(Broadcast[StateMachineCommand](_))
 
       val streamActor: ActorRef[EventStream] = sourceCommand
         .to(sink)
