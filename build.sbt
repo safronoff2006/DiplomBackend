@@ -23,6 +23,8 @@ lazy val root = (project in file(".")).enablePlugins(PlayScala).settings(
 )
 
 
+  PlayKeys.devSettings += "play.server.http.idleTimeout" -> "3600000"
+
 // Adds additional packages into Twirl
 //TwirlKeys.templateImports += "safronoff2006.controllers._"
 

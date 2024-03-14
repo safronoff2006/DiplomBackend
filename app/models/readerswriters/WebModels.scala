@@ -8,6 +8,7 @@ import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
 import play.api.libs.json._
 import services.businesslogic.statemachines.typed.AutoStateMachineTyped.Perimeters
 import services.businesslogic.statemachines.typed.StateMachineTyped.ProtocolExecuteWithName
+import services.storage.GlobalStorage.WebProtokol
 
 import scala.language.implicitConversions
 
@@ -125,6 +126,12 @@ object WebModels {
           "name" -> obj.name
         )
     }
+
+    implicit val WebProtokolWrites: Writes[WebProtokol] = (
+      (JsPath \ "protokol").write[String] and
+        (JsPath \ "endPoint").write[String]
+    ) (unlift (WebProtokol.unapply))
+
 
 
   }

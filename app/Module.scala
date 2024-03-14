@@ -24,8 +24,10 @@ import services.start.{ApplicationStartDebug, InterfaceStart}
 import services.storage.GlobalStorage._
 import services.storage.{GlobalStorage, StateMachinesStorage, TcpStorage}
 
+
 import javax.inject.Named
 import scala.annotation.tailrec
+
 
 
 class Module  extends AbstractModule  with AkkaGuiceSupport {
@@ -119,6 +121,19 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
 
   override def configure(): Unit = {
     logger.info("Выполняется конфигурация модуля Guice")
+
+
+    //привязка конфигурации web-протокола
+    if (ConfigFactory.load.hasPath("webProtocols")) {
+      val protocol = ConfigFactory.load.getConfig("webProtocols.use")
+      val name = protocol.getString("name")
+      val endPoint = protocol.getString("endPoint")
+
+      val instanceWebProtokol = WebProtokol(name, endPoint)
+      bind(classOf[WebProtokol]).toInstance(instanceWebProtokol)
+    } else {
+      bind(classOf[WebProtokol]).toInstance(WebProtokol("",""))
+    }
 
 
     //привязка таймаута обработки карты

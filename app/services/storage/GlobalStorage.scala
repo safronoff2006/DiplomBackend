@@ -45,6 +45,8 @@ class GlobalStorage {
 
 object GlobalStorage {
 
+  case class WebProtokol(protokol: String, endPoint: String)
+
   private var optSys: Option[ActorSystem[MainBehaviorCommand]] = None
 
   trait MainBehaviorCommand

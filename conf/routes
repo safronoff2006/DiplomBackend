@@ -22,4 +22,6 @@ POST    /workplacePing              controllers.MainController.workplacePing
 
 GET     /websocket                  controllers.WebSocketController.socket
 
+GET     /getProtokolConfig          controllers.MainController.getProtokolConfig
+
 
