@@ -168,7 +168,8 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
     message match {
       case ProtocolExecute(mess) => protocolExecute(mess)
         loger.info(s"work ProtocolExecute  $name", "ProtocolExecute")
-        val respSend = StreamFeeder.send(ProtocolExecuteWithName(mess,name))
+        val optHumanName = GlobalStorage.getOptionHumanNameScaleByName(name)
+        val respSend = StreamFeeder.send(ProtocolExecuteWithName(mess,name, optHumanName.getOrElse(""), idnx))
         respSend match {
           case Left(exp) => context.log.error(exp.getMessage)
           case Right(value) => context.log.info(s"Send to stream: $value")
@@ -218,7 +219,8 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
 
       case message@ProtocolExecute(mess) => protocolExecute(mess)
         loger.info(s"timeout ProtocolExecute  $name", "ProtocolExecute")
-        val respSend = StreamFeeder.send(ProtocolExecuteWithName(mess,name))
+        val optHumanName = GlobalStorage.getOptionHumanNameScaleByName(name)
+        val respSend = StreamFeeder.send(ProtocolExecuteWithName(mess,name, optHumanName.getOrElse(""), idnx))
         respSend match {
           case Left(exp) => context.log.error(exp.getMessage)
           case Right(value) => context.log.info(s"Send to stream: $value")

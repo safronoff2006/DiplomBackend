@@ -8,6 +8,7 @@ import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
 import play.api.libs.json._
 import services.businesslogic.statemachines.typed.AutoStateMachineTyped.Perimeters
 import services.businesslogic.statemachines.typed.StateMachineTyped.ProtocolExecuteWithName
+import services.storage.GlobalStorage
 import services.storage.GlobalStorage.WebProtokol
 
 import scala.language.implicitConversions
@@ -121,9 +122,12 @@ object WebModels {
           "errorMessage" -> "Неверный подкласс  NoCardOrWithCard"
         )
       }
+        val humanName = GlobalStorage.getOptionHumanNameScaleByName(obj.name).getOrElse("")
         Json.obj(
           "message" -> jsMessage,
-          "name" -> obj.name
+          "name" -> obj.name,
+          "humanName" -> humanName,
+          "indx" -> obj.indx
         )
     }
 

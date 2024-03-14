@@ -76,7 +76,8 @@ class  RailStateMachineTyped(context: ActorContext[StateMachineCommand],stateSto
 
       case ProtocolExecute(message) => protocolExecute(message)
         loger.info("onMessage", "ProtocolExecute")
-        val respSend = StreamFeeder.send(ProtocolExecuteWithName(message, name) )
+        val optHumanName = GlobalStorage.getOptionHumanNameScaleByName(name)
+        val respSend = StreamFeeder.send(ProtocolExecuteWithName(message, name, optHumanName.getOrElse(""), idnx) )
 
         respSend match {
           case Left(exp) => context.log.error(exp.getMessage)

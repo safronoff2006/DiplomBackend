@@ -23,8 +23,11 @@ object StateMachineTyped {
   case class Name(name: String) extends StateMachineCommand
 
   case class ProtocolExecute(message: NoCardOrWithCard) extends StateMachineCommand
-  case class ProtocolExecuteWithName(message: NoCardOrWithCard, name: String) extends StateMachineCommand {
-    def apply(obj: ProtocolExecute, name: String): ProtocolExecuteWithName = ProtocolExecuteWithName(obj.message, name)
+  case class ProtocolExecuteWithName(message: NoCardOrWithCard, name: String, humanName: String, indx: Int) extends StateMachineCommand {
+    def apply(obj: ProtocolExecute, name: String): ProtocolExecuteWithName = {
+      val optHumanName = GlobalStorage.getOptionHumanNameScaleByName(name)
+      ProtocolExecuteWithName(obj.message, name, optHumanName.getOrElse(""), indx)
+    }
   }
 
   case class CardExecute(card: String) extends StateMachineCommand

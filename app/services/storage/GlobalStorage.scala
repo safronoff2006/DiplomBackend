@@ -7,6 +7,7 @@ import play.api.Logger
 import services.businesslogic.channelparsers.typed.ParserTyped.{ParserCommand, PatternInfo}
 import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.PhisicalObjectEvent
 import services.businesslogic.statemachines.typed.StateMachineTyped.StateMachineCommand
+import services.storage.GlobalStorage.mapHumanNamesScale
 
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Singleton
@@ -17,12 +18,7 @@ class GlobalStorage {
   private val logger: Logger = Logger(this.getClass)
   logger.info("Загружен GlobalStorage")
 
-  private val mapHumanNamesScale: Map[String, String] = Map(
-    "TruckScale[1]" -> "Автомобильные Весы 1",
-    "TruckScale[2]" -> "Автомобильные Весы 2",
-    "TruckScale[3]" -> "Автомобильные Весы 3",
-    "RailWeighbridge" -> "ЖД Весы"
-  )
+
 
 
   private def getHumanNamesScales: Map[String, String] = {
@@ -44,6 +40,20 @@ class GlobalStorage {
 
 
 object GlobalStorage {
+
+
+  val mapHumanNamesScale: Map[String, String] = Map(
+    "TruckScale[1]" -> "Автомобильные Весы 1",
+    "TruckScale[2]" -> "Автомобильные Весы 2",
+    "TruckScale[3]" -> "Автомобильные Весы 3",
+    "RailWeighbridge" -> "ЖД Весы"
+  )
+
+  def getHumanNamesScales: Map[String, String] = {
+    mapHumanNamesScale
+  }
+
+  def getOptionHumanNameScaleByName(name: String): Option[String] = getHumanNamesScales.get(name)
 
   case class WebProtokol(protokol: String, endPoint: String)
 
