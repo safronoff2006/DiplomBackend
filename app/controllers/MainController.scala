@@ -1,6 +1,8 @@
 package controllers
 
 
+import akka.NotUsed
+import akka.stream.scaladsl.{Flow, Source}
 import executioncontexts.CustomBlockingExecutionContext
 import models.db.DbModels.Test
 import models.readerswriters.CardModel
@@ -17,6 +19,7 @@ import services.businesslogic.statemachines.typed.StateMachineTyped.StatePlatfor
 import services.db.DbLayer
 import services.storage.GlobalStorage.WebProtokol
 import services.storage.{GlobalStorage, StateMachinesStorage}
+import slick.basic.DatabasePublisher
 
 import javax.inject._
 import scala.concurrent.Future
@@ -200,6 +203,18 @@ class MainController @Inject()(val cc: ControllerComponents, stateStorage: State
   }
   }
 
+
+
+  def getAllTestsWithStream: Action[AnyContent] = Action { implicit request =>
+    val publisher: DatabasePublisher[Test] = dbLayer.getAllTestStream
+    val testsSource: Source[JsValue, NotUsed] = Source.fromPublisher(publisher)
+      .via(Flow[Test].map(x => x: WebTest))
+      .via(Flow[WebTest].map(x => Json.toJson(x)))
+
+    Ok.chunked(testsSource)
+
+  }
+
   def getTestById(id: String): Action[AnyContent] = Action.async { request => {
     val futureDb: Future[Option[Test]] = dbLayer.getTestById(id)
     futureDb.map {
@@ -209,4 +224,12 @@ class MainController @Inject()(val cc: ControllerComponents, stateStorage: State
   }
   }
 
+  def getTestByIdWithStream(id: String): Action[AnyContent]  = Action { implicit request =>
+    val publisher = dbLayer.getTestByIdWithStream(id)
+    val testsSource: Source[JsValue, NotUsed] = Source.fromPublisher(publisher)
+      .via(Flow[Test].map(x => x: WebTest))
+      .via(Flow[WebTest].map(x => Json.toJson(x)))
+
+    Ok.chunked(testsSource)
+  }
 }

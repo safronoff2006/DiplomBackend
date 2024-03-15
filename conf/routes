@@ -28,6 +28,9 @@ GET     /getProtokolConfig          controllers.MainController.getProtokolConfig
 
 GET     /getAllTests                controllers.MainController.getAllTests
 
-GET     /getTestById                 controllers.MainController.getTestById(id: String)
+GET     /getTestById                controllers.MainController.getTestById(id: String)
 
+GET     /getAllTestsWithStream      controllers.MainController.getAllTestsWithStream
+
+GET     /getTestByIdWithStream      controllers.MainController.getTestByIdWithStream(id: String)
 

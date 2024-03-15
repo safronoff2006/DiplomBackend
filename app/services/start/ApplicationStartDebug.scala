@@ -4,6 +4,7 @@ import akka.actor.ActorSystem
 import akka.io.Tcp
 import akka.util.ByteString
 import models.configs.Serverconf
+import models.db.DbModels.{Test, UidREF}
 import models.readerswriters.WebModels.WebModelsWritesReads
 import net.tcp._
 import play.api.inject.{ApplicationLifecycle, Injector}
@@ -11,10 +12,12 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.{Application, Configuration, Logger, Play}
 import services.businesslogic.dispatchers.typed.PhisicalObjectTyped
 import services.businesslogic.managers.PhisicalObjectsManager
+import services.db.DbLayer
 
 import java.util.Locale
 import javax.inject._
-import scala.concurrent.Future
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
 import scala.io.Source
 import scala.language.postfixOps
 import scala.util.{Failure, Success, Try, Using}
@@ -28,7 +31,7 @@ trait InterfaceStart {
 class ApplicationStartDebug @Inject()(lifecycle: ApplicationLifecycle, environment: play.api.Environment,
                                       injector: Injector, config: Configuration,tcpBuilder: TcpServerBuilder,
                                       implicit val system: ActorSystem, tcpClientsManager: TestTcpClientsManager,
-                                      dispatchers: PhisicalObjectsManager)
+                                      dispatchers: PhisicalObjectsManager, dbLayer: DbLayer)
   extends InterfaceStart with TcpClientOwner with WebModelsWritesReads {
 
   val logger: Logger = Logger(this.getClass)
@@ -84,6 +87,19 @@ class ApplicationStartDebug @Inject()(lifecycle: ApplicationLifecycle, environme
 //
 //  private val serData: JsValue = Json.toJson(StatePlatformSerialized(10, "rail", per))
 //  println(s"serData    $serData")
+
+  private var listOfTests: List[Test] = List()
+  (0 to 99).foreach { number =>
+    val id  = java.util.UUID.randomUUID().toString
+    listOfTests = listOfTests :+ Test(UidREF(id), s"Имя $id")
+  }
+
+  private val futureInsert = dbLayer.streamInsertTestFuture(listOfTests)
+
+  private val rowsInserted = Await.result(futureInsert, Duration.Inf)
+
+  logger. info(s"Inserted $rowsInserted   rows")
+
 
   //чтение основной конфигурации сервера
   if (config.has("serverconf")) {
