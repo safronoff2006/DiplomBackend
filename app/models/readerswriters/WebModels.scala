@@ -1,5 +1,6 @@
 package models.readerswriters
 
+import models.db.DbModels.{Test, UidREF}
 import models.extractors.Protocol2NoCard.NoCard
 import models.extractors.Protocol2WithCard.WithCard
 import models.extractors.ProtocolRail.RailWeight
@@ -11,14 +12,23 @@ import services.businesslogic.statemachines.typed.StateMachineTyped.ProtocolExec
 import services.storage.GlobalStorage
 import services.storage.GlobalStorage.WebProtokol
 
+
 import scala.language.implicitConversions
 
 object WebModels {
   val logger: Logger = Logger(this.getClass)
+  case class WebTest(id: String, name: String)
+
+  implicit def convertTestToWebTest(obj: Test): WebTest
+  = WebTest(obj.id.value, obj.name)
+
+
 
   trait WebModelsWritesReads {
 
     case class PerimetersSerialized(in: String, out: String, left: String, right: String)
+
+
 
     abstract class  StateSerialized {
       def weight: Int
@@ -136,6 +146,23 @@ object WebModels {
         (JsPath \ "endPoint").write[String]
     ) (unlift (WebProtokol.unapply))
 
+    /////// тесты
+
+
+
+    implicit val TestWrites: Writes[Test] = (
+      (JsPath \ "id").write[UidREF] and
+        (JsPath \ "name").write[String]
+    ) (unlift (Test.unapply))
+
+    implicit val WebTestWrites: Writes[WebTest] = (
+      (JsPath \ "id").write[String] and
+        (JsPath \ "name").write[String]
+      )(unlift(WebTest.unapply))
+
+
+
+    ///////
 
 
   }

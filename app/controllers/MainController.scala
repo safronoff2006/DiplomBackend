@@ -2,17 +2,19 @@ package controllers
 
 
 import executioncontexts.CustomBlockingExecutionContext
+import models.db.DbModels.Test
 import models.readerswriters.CardModel
 import models.readerswriters.CardModel.CardModelWritesReads
-import models.readerswriters.WebModels.WebModelsWritesReads
+import models.readerswriters.WebModels.{WebModelsWritesReads, WebTest}
 import models.readerswriters.WorkplaceModel.WorkplaceModelWritesReads
 import play.api._
 import play.api.libs.json.{JsArray, JsString, JsValue, Json}
-import play.api.mvc.{Action, _}
+import play.api.mvc._
 import services.businesslogic.managers.PhisicalObjectsManager
 import services.businesslogic.statemachines.typed.AutoStateMachineTyped._
 import services.businesslogic.statemachines.typed.RailStateMachineTyped._
 import services.businesslogic.statemachines.typed.StateMachineTyped.StatePlatform
+import services.db.DbLayer
 import services.storage.GlobalStorage.WebProtokol
 import services.storage.{GlobalStorage, StateMachinesStorage}
 
@@ -27,7 +29,7 @@ import scala.util.{Failure, Success, Try}
  */
 @Singleton
 class MainController @Inject()(val cc: ControllerComponents, stateStorage: StateMachinesStorage,
-                               phisManager: PhisicalObjectsManager, globalStor: GlobalStorage, webProtocol: WebProtokol)
+                               phisManager: PhisicalObjectsManager, globalStor: GlobalStorage, webProtocol: WebProtokol, dbLayer: DbLayer)
                               (implicit ex: CustomBlockingExecutionContext)
   extends AbstractController(cc) with CardModelWritesReads with WorkplaceModelWritesReads with WebModelsWritesReads {
 
@@ -172,11 +174,39 @@ class MainController @Inject()(val cc: ControllerComponents, stateStorage: State
   ///////////////////////////////////////////
 
   def getProtokolConfig: Action[AnyContent] = Action.async { request => {
-      Future {
-        val jsonCongig: JsValue = Json.toJson(webProtocol)
-        Ok(jsonCongig)
-      }
+    Future {
+      val jsonCongig: JsValue = Json.toJson(webProtocol)
+      Ok(jsonCongig)
     }
+  }
+  }
+
+  implicit def convertF(future: Future[Seq[Test]]): Future[Seq[WebTest]] = future.map {
+    seq => seq.map(t => t: WebTest)
+  }
+
+  ////////////////////////////////////////// тесты Slick
+  def getAllTests: Action[AnyContent] = Action.async { request => {
+    val futureDb: Future[Seq[WebTest]] = dbLayer.getAllTest
+    val futureConversion: Future[JsValue] = for {
+      seq: Seq[WebTest] <- futureDb
+      js <- Future(Json.toJson(seq))
+    } yield js
+
+    futureConversion transformWith {
+      case Success(value) => Future(Ok(value))
+      case Failure(tr) => Future(Status(500)(s"Server internal error ${tr.getMessage}"))
+    }
+  }
+  }
+
+  def getTestById(id: String): Action[AnyContent] = Action.async { request => {
+    val futureDb: Future[Option[Test]] = dbLayer.getTestById(id)
+    futureDb.map {
+      case Some(value) => Json.toJson(value: WebTest)
+      case None => Json.obj("error" -> true, "errorMessage" -> s"Не найден объект по идентификатору $id")
+    }.map(Ok(_))
+  }
   }
 
 }

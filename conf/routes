@@ -24,4 +24,10 @@ GET     /websocket                  controllers.WebSocketController.socket
 
 GET     /getProtokolConfig          controllers.MainController.getProtokolConfig
 
+## тесты
+
+GET     /getAllTests                controllers.MainController.getAllTests
+
+GET     /getTestById                 controllers.MainController.getTestById(id: String)
+
 

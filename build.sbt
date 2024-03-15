@@ -13,6 +13,7 @@ lazy val root = (project in file(".")).enablePlugins(PlayScala).settings(
     "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0" % Test,
     "org.postgresql" % "postgresql" % "42.6.0",
     "commons-codec" % "commons-codec" % "1.16.0",
+    "com.typesafe.play" %% "play-slick" % "5.1.0",
 
     specs2 % Test,
     "com.typesafe.akka" %% "akka-stream-typed" %  play.core.PlayVersion.akkaVersion,
