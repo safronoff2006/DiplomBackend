@@ -7,6 +7,7 @@ import models.db.DbModels.{Test, UidREF}
 import models.db.DbSchema
 import play.api.Logger
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import services.db.DbLayer.InsertConf
 import slick.basic.DatabasePublisher
 import slick.jdbc.{JdbcProfile, ResultSetConcurrency, ResultSetType}
 
@@ -14,10 +15,11 @@ import javax.inject.Inject
 import scala.concurrent.Future
 
 object DbLayer {
-
+  case class InsertInnerConf(listMaxSize: Int, groupSize: Int, parallelism: Int)
+  case class InsertConf(test: InsertInnerConf, state: InsertInnerConf, card: InsertInnerConf)
 }
 
-class DbLayer @Inject()(protected val dbConfigProvider: DatabaseConfigProvider, dbShema: DbSchema)
+class DbLayer @Inject()(protected val dbConfigProvider: DatabaseConfigProvider, dbShema: DbSchema, insertConf: InsertConf)
                        (implicit executionContext: CustomBlockingExecutionContext, implicit val system: ActorSystem)
                         extends HasDatabaseConfigProvider[JdbcProfile]{
 
@@ -28,7 +30,7 @@ class DbLayer @Inject()(protected val dbConfigProvider: DatabaseConfigProvider, 
   import profile.api._
   import dbShema._
 
-  //тесты
+  ////////////////////////////////////////тесты
  private  def allTestQuery = test.sortBy(_.name).result
 
   def getAllTest: Future[Seq[Test]] = db.run(allTestQuery)
@@ -50,12 +52,14 @@ class DbLayer @Inject()(protected val dbConfigProvider: DatabaseConfigProvider, 
     fetchSize = 10000
   ).transactionally)
 
-  def insertTests(seq: Seq[Test]): Future[Int] = db.run(test ++= seq).map(_.getOrElse(0))
+  private def insertTests(seq: Seq[Test]): Future[Int] = db.run(test ++= seq).map(_.getOrElse(0))
 
   def streamInsertTestFuture(listOfTest: List[Test]): Future[Int] =
     Source.fromIterator(() => listOfTest.iterator)
       .via(Flow[Test].grouped(10))
       .mapAsync(5)((tests: Seq[Test]) => insertTests(tests))
       .runWith(Sink.fold(0)(_+_))
+
+  //////////////////////////////////
 
 }

@@ -20,19 +20,15 @@ import services.businesslogic.dispatchers.typed.{RailWeighbridgeTyped, RailWeigh
 import services.businesslogic.managers.PhisicalObjectsManager
 import services.businesslogic.statemachines.typed.StateMachineTyped.StateMachineCommand
 import services.businesslogic.statemachines.typed.{AutoStateMachineTyped, AutoStateMachineWraper, RailStateMachineTyped, RailStateMachineWraper, StateMachineWraper}
+import services.db.DbLayer._
 import services.start.{ApplicationStartDebug, InterfaceStart}
 import services.storage.GlobalStorage._
 import services.storage.{GlobalStorage, StateMachinesStorage, TcpStorage}
 
-
 import javax.inject.Named
 import scala.annotation.tailrec
 
-
-
-class Module  extends AbstractModule  with AkkaGuiceSupport {
-
-
+class Module extends AbstractModule with AkkaGuiceSupport {
 
   private object MainBehavior {
     def apply(): Behavior[MainBehaviorCommand] =
@@ -115,15 +111,35 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
 
   private val logger: Logger = Logger(this.getClass)
   logger.info("Загружен модуль IoC контейнера")
-  val sys: ActorSystem[MainBehaviorCommand] =  createMainContext
+  val sys: ActorSystem[MainBehaviorCommand] = createMainContext
   GlobalStorage.setSys(sys)
 
 
   override def configure(): Unit = {
     logger.info("Выполняется конфигурация модуля Guice")
 
+    //привязка конфигурации параметров операций вставки
+    val notExistConf = InsertConf(InsertInnerConf(50, 10, 5), InsertInnerConf(50, 10, 5), InsertInnerConf(50, 10, 5))
+
+    val insertConfObject: InsertConf = if (ConfigFactory.load.hasPath("insertConf")) {
+      val confTest = ConfigFactory.load.getConfig("insertConf.test")
+      val confState = ConfigFactory.load.getConfig("insertConf.state")
+      val confCard = ConfigFactory.load.getConfig("insertConf.card")
+
+      val innerTest = InsertInnerConf(confTest.getInt("listMaxSize"), confTest.getInt("groupSize"), confTest.getInt("parallelism"))
+      val innerState = InsertInnerConf(confState.getInt("listMaxSize"), confState.getInt("groupSize"), confState.getInt("parallelism"))
+      val innerCard = InsertInnerConf(confCard.getInt("listMaxSize"), confCard.getInt("groupSize"), confCard.getInt("parallelism"))
+
+      InsertConf(innerTest, innerState, innerCard)
+    } else notExistConf
+
+
+
+    bind(classOf[InsertConf]).toInstance(insertConfObject)
 
     //привязка конфигурации web-протокола
+
+
     if (ConfigFactory.load.hasPath("webProtocols")) {
       val protocol = ConfigFactory.load.getConfig("webProtocols.use")
       val name = protocol.getString("name")
@@ -132,13 +148,13 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
       val instanceWebProtokol = WebProtokol(name, endPoint)
       bind(classOf[WebProtokol]).toInstance(instanceWebProtokol)
     } else {
-      bind(classOf[WebProtokol]).toInstance(WebProtokol("",""))
+      bind(classOf[WebProtokol]).toInstance(WebProtokol("", ""))
     }
 
 
     //привязка таймаута обработки карты
     bind(classOf[Long]).annotatedWith(Names.named("CardTimeout")).toInstance(
-      if (ConfigFactory.load.hasPath("timeoutCardResponce"))  ConfigFactory.load.getLong("timeoutCardResponce")
+      if (ConfigFactory.load.hasPath("timeoutCardResponce")) ConfigFactory.load.getLong("timeoutCardResponce")
       else 5000
     )
 
@@ -162,7 +178,7 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
     if (ConfigFactory.load.hasPath("tcp-servers.host-ip")) {
       val hostip = ConfigFactory.load.getString("tcp-servers.host-ip")
       bind(classOf[String]).annotatedWith(Names.named("HostIp")).toInstance(hostip)
-    } else  bind(classOf[String]).annotatedWith(Names.named("HostIp")).toInstance("0.0.0.0")
+    } else bind(classOf[String]).annotatedWith(Names.named("HostIp")).toInstance("0.0.0.0")
 
     //приявязка паттернов
     bind(classOf[String]).annotatedWith(Names.named("AutoMainPattern")).toInstance(
@@ -230,8 +246,6 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
     bindActorFactory[WebSocketActor, WebSocketActor.Factory]
 
 
-
-
   }
 
   private object GetRefWhenExist {
@@ -262,8 +276,6 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
       }
     }
   }
-
-
 
 
   //провайдеры акторов диспетчеров для ЖД и автомобильных весов
@@ -305,7 +317,7 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
 
   @Provides
   @Named("AutoStateMachineA")
-  def getAutoStateMachineActor(@Named("AutoStateMachineW") sm: StateMachineWraper):ActorRef[StateMachineCommand] = {
+  def getAutoStateMachineActor(@Named("AutoStateMachineW") sm: StateMachineWraper): ActorRef[StateMachineCommand] = {
     val id = sm.create()
     GetRefWhenExist.getRefST(id)
   }
@@ -320,7 +332,7 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
   //провайдеры кортежей паттернов для парсеров протоколов
   @Provides
   @Named("AutoMainPatternInfo")
-  def getAutoPatternInfo(@Named("AutoMainPatternName") nameMainPattern:String,
+  def getAutoPatternInfo(@Named("AutoMainPatternName") nameMainPattern: String,
                          @Named("AutoMainPattern") mainPattern: String,
                          @Named("CardPatternName") nameCardPattern: String,
                          @Named("CardPattern") cardPattern: String): PatternInfo =
@@ -332,8 +344,6 @@ class Module  extends AbstractModule  with AkkaGuiceSupport {
   def getRailPatternInfo(@Named("RailsMainPatternName") nameMainPattern: String,
                          @Named("RailsMainPattern") mainPattern: String): PatternInfo =
     (nameMainPattern, mainPattern, "", "")
-
-
 
 
 }
