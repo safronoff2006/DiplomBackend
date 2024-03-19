@@ -1,6 +1,6 @@
 package models.readerswriters
 
-import models.db.DbModels.{Test, UidREF}
+import models.db.DbModels.{DbCard, DbPerimeters, DbProtokol, Test, UidREF}
 import models.extractors.Protocol2NoCard.NoCard
 import models.extractors.Protocol2WithCard.WithCard
 import models.extractors.ProtocolRail.RailWeight
@@ -12,15 +12,42 @@ import services.businesslogic.statemachines.typed.StateMachineTyped.ProtocolExec
 import services.storage.GlobalStorage
 import services.storage.GlobalStorage.WebProtokol
 
-
 import scala.language.implicitConversions
 
 object WebModels {
   val logger: Logger = Logger(this.getClass)
+
+
+  //////////////////////////////////// Web models
+  //// WebTest
   case class WebTest(id: String, name: String)
 
   implicit def convertTestToWebTest(obj: Test): WebTest
   = WebTest(obj.id.value, obj.name)
+
+  //// WebPerimeters
+  case class WebPerimeters(id: String, value: String, modified: String )
+
+  implicit def convertDbPerimetersToWebPerimeters(obj: DbPerimeters): WebPerimeters =
+    WebPerimeters(obj.id.value, obj.value, Json.toJson(obj.modified).toString())
+
+  ////WebProto
+  case class WebProto(id: String, name: String, humanName: String, indx: Int,
+                      prefix: String, weight: Int, crc: String,
+                      svetofor: String, modified: String)
+
+  implicit def convertDbProtokolToWebProto(obj: DbProtokol): WebProto =
+    WebProto(obj.id.value, obj.name, obj.humanName, obj.indx, obj.prefix, obj.weight, obj.crc,
+      obj.svetofor.getOrElse("?"), Json.toJson(obj.modified).toString())
+
+  ///WebCard
+  case  class WebCard(id: String, name: String ,
+                      execute: Boolean , resp: Boolean , timeout: Boolean ,
+                      card: String, param: String, modified: String)
+
+  implicit def convertDbCardToWebCard(obj: DbCard): WebCard =
+    WebCard(obj.id.value, obj.name, obj.execute, obj.resp, obj.timeout, obj.card.getOrElse(""), obj.param.getOrElse(""),
+      Json.toJson(obj.modified).toString())
 
 
 

@@ -7,6 +7,8 @@ import models.extractors.ProtocolRail.RailWeight
 import play.api.Logger
 import services.businesslogic.statemachines.typed.RailStateMachineTyped.StateRailPlatform
 import services.businesslogic.statemachines.typed.StateMachineTyped._
+import services.db.DbLayer
+import services.db.DbLayer.InsertConf
 import services.storage.GlobalStorage.MainBehaviorCommand
 import services.storage.{GlobalStorage, StateMachinesStorage}
 import utils.AtomicOption
@@ -19,7 +21,7 @@ object RailStateMachineTyped {
   case class StateRailPlatform(weight: Int) extends StatePlatform
 }
 
-class RailStateMachineWraper @Inject()(stateStorage: StateMachinesStorage) extends StateMachineWraper {
+class RailStateMachineWraper @Inject()(stateStorage: StateMachinesStorage, dbLayer: DbLayer, insertConf: InsertConf) extends StateMachineWraper {
 
   private val logger: Logger = Logger(this.getClass)
   logger.info("Создан RailStateMachineWraper")
@@ -47,7 +49,7 @@ class RailStateMachineWraper @Inject()(stateStorage: StateMachinesStorage) exten
         ""
       case Success(sys) =>
         val id: String = java.util.UUID.randomUUID.toString
-        sys ! CreateRailStateMachine(stateStorage, id)
+        sys ! CreateRailStateMachine(stateStorage, dbLayer, insertConf,  id)
         id
     }
 
@@ -56,13 +58,15 @@ class RailStateMachineWraper @Inject()(stateStorage: StateMachinesStorage) exten
 }
 
 
-class  RailStateMachineTyped(context: ActorContext[StateMachineCommand],stateStorage: StateMachinesStorage)
+class  RailStateMachineTyped(context: ActorContext[StateMachineCommand],stateStorage: StateMachinesStorage, dbLayer: DbLayer, insertConf: InsertConf)
   extends StateMachineTyped(context: ActorContext[StateMachineCommand]) {
 
   loger.info("Создан актор -  стейт машина RailStateMachineTyped")
   private val state: AtomicOption[StateRailPlatform] = new AtomicOption(None)
 
   override def register(name: String): Unit = stateStorage.addT(name, context.self)
+
+  private val listStatesToInsert: List[StateMachineCommand] = List()
 
 
   override def getState: Option[StatePlatform]  = state.getState
@@ -104,4 +108,9 @@ class  RailStateMachineTyped(context: ActorContext[StateMachineCommand],stateSto
     stateStorage.setHttpState(name, (newState, idnx))
 
   }
+
+  private def sendStatesToDB(state: StateMachineCommand): Unit = {
+
+  }
+
 }

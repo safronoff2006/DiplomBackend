@@ -3,16 +3,22 @@ package services.businesslogic.statemachines.typed
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorSystem, Behavior}
 import com.google.inject.name.Named
-import models.extractors.NoCardOrWithCard
+import executioncontexts.CustomBlockingExecutionContext
+import models.db.DbModels._
+import models.extractors.{NoCardOrWithCard, ProtocolRail}
 import models.extractors.Protocol2NoCard.{NoCard, patternPerimeters}
 import models.extractors.Protocol2WithCard.WithCard
 import play.api.Logger
 import services.businesslogic.statemachines.typed.AutoStateMachineTyped.{Perimeters, StateAutoPlatform}
 import services.businesslogic.statemachines.typed.StateMachineTyped._
+import services.db.DbLayer
+import services.db.DbLayer.InsertConf
 import services.storage.GlobalStorage.{CreateAutoStateMachine, MainBehaviorCommand}
 import services.storage.{GlobalStorage, StateMachinesStorage}
 import utils.{AtomicOption, EmMarineConvert}
 
+import java.sql.Timestamp
+import java.time.Instant
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import scala.concurrent.duration.DurationLong
@@ -45,7 +51,9 @@ object AutoStateMachineTyped {
 class AutoStateMachineWraper @Inject()(@Named("CardPatternName") nameCardPattern: String,
                                        stateStorage: StateMachinesStorage,
                                        @Named("ConvertEmMarine") convertEmMarine: Boolean,
-                                       @Named("CardTimeout") cardTimeout: Long
+                                       @Named("CardTimeout") cardTimeout: Long,
+                                       dbLayer: DbLayer,
+                                       insertConf: InsertConf
                                       ) extends StateMachineWraper {
 
   private val logger: Logger = Logger(this.getClass)
@@ -74,7 +82,7 @@ class AutoStateMachineWraper @Inject()(@Named("CardPatternName") nameCardPattern
         ""
       case Success(sys) =>
         val id: String = java.util.UUID.randomUUID.toString
-        sys ! CreateAutoStateMachine(nameCardPattern, stateStorage, convertEmMarine, cardTimeout, id)
+        sys ! CreateAutoStateMachine(nameCardPattern, stateStorage, convertEmMarine, cardTimeout, dbLayer, insertConf, id)
         id
     }
 
@@ -85,8 +93,10 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
                             nameCardPattern: String,
                             stateStorage: StateMachinesStorage,
                             convertEmMarine: Boolean,
-                            cardTimeout: Long
-                           ) extends StateMachineTyped(context: ActorContext[StateMachineCommand]) {
+                            cardTimeout: Long,
+                            dbLayer: DbLayer,
+                            insertConf: InsertConf,
+                           )  (implicit ex: CustomBlockingExecutionContext) extends StateMachineTyped(context: ActorContext[StateMachineCommand]) {
 
   loger.info("Создан актор -  стейт машина AutoStateMachine")
   loger.info(s"Паттерн карт: $nameCardPattern")
@@ -95,6 +105,12 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
 
   private val state: AtomicOption[StateAutoPlatform] = new AtomicOption(None)
   private val workedCard: AtomicOption[String] = new AtomicOption(None)
+
+
+  private var listStatesToInsert: List[DbProtokol] = List()
+  private var listPerimetersToInsert: List[DbPerimeters] = List()
+  private var listCardsToInsert: List[DbCard] = List()
+
 
   //проанализировал - внутренний
   private def processingCard(): Unit = {
@@ -152,6 +168,7 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
 
   }
 
+
   override def onMessage(msg: StateMachineCommand): Behavior[StateMachineCommand] = {
     context.log.info("Create onMessage Behavior")
     msg match {
@@ -163,13 +180,14 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
     }
   }
 
+
   private def work(): Behavior[StateMachineCommand] = Behaviors.receiveMessage[StateMachineCommand] { message =>
     context.log.info("Create work Behavior")
     message match {
       case ProtocolExecute(mess) => protocolExecute(mess)
         loger.info(s"work ProtocolExecute  $name", "ProtocolExecute")
         val optHumanName = GlobalStorage.getOptionHumanNameScaleByName(name)
-        val respSend = StreamFeeder.send(ProtocolExecuteWithName(mess,name, optHumanName.getOrElse(""), idnx))
+        val respSend = StreamFeeder.send(ProtocolExecuteWithName(mess, name, optHumanName.getOrElse(""), idnx))
         respSend match {
           case Left(exp) => context.log.error(exp.getMessage)
           case Right(value) => context.log.info(s"Send to stream: $value")
@@ -220,7 +238,10 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
       case message@ProtocolExecute(mess) => protocolExecute(mess)
         loger.info(s"timeout ProtocolExecute  $name", "ProtocolExecute")
         val optHumanName = GlobalStorage.getOptionHumanNameScaleByName(name)
-        val respSend = StreamFeeder.send(ProtocolExecuteWithName(mess,name, optHumanName.getOrElse(""), idnx))
+
+        val protocolWithName = ProtocolExecuteWithName(mess, name, optHumanName.getOrElse(""), idnx)
+
+        val respSend = StreamFeeder.send(protocolWithName)
         respSend match {
           case Left(exp) => context.log.error(exp.getMessage)
           case Right(value) => context.log.info(s"Send to stream: $value")
@@ -245,6 +266,67 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
 
       case _ => Behaviors.same
     }
+
+  }
+
+
+  private def sendStatesToDB(state: StateMachineCommand): Unit = {
+    state match {
+      case obj: ProtocolExecuteWithName =>
+        val id: String = java.util.UUID.randomUUID().toString
+        val objmessage: NoCardOrWithCard = obj.message
+        val modified = Timestamp.from(Instant.now())
+
+        val (prefix, weight, crc, optSvetofor) = objmessage match {
+          case NoCard(prefix, perimeters, weight, crc, svetofor) => (prefix, weight.trim.toInt, crc, Some(svetofor))
+          case ProtocolRail.RailWeight(prefix, weight) => (prefix, weight.trim.toInt, "", None)
+          case WithCard(prefix, perimeters, weight, crc, card, typeCard, svetofor) => (prefix, weight.trim.toInt, crc, Some(svetofor))
+          case _ => ("", 0, "", None)
+        }
+
+
+        val optPerimeters = objmessage match {
+          case NoCard(prefix, perimeters, weight, crc, svetofor) => Some(DbPerimeters(UidREF(id), perimeters, modified))
+          case ProtocolRail.RailWeight(prefix, weight) => None
+          case WithCard(prefix, perimeters, weight, crc, card, typeCard, svetofor) => Some(DbPerimeters(UidREF(id), perimeters, modified))
+          case _ => None
+        }
+
+        val dbprotokol: DbProtokol = DbProtokol(UidREF(id), obj.name, obj.humanName, obj.indx, prefix, weight, crc, optSvetofor, modified)
+
+        listStatesToInsert = listStatesToInsert :+ dbprotokol
+
+        if (optPerimeters.isDefined) {
+          listPerimetersToInsert = listPerimetersToInsert :+ optPerimeters.get
+        }
+
+        if (listStatesToInsert.size >= insertConf.state.listMaxSize ) {
+          val listStatesToInsertCopy = listStatesToInsert
+          val listPerimetersToInsertCopy = listPerimetersToInsert
+          listStatesToInsert = List()
+          listPerimetersToInsert = List()
+
+          val f1 =  dbLayer.insertProtokolsFuture(listStatesToInsertCopy)
+          f1.onComplete {
+            case Failure(exception) =>
+              loger.error(exception.getMessage)
+            case Success(resInt) =>
+              loger.info(s"Inserted $resInt  Protokols")
+              val f2 = dbLayer.insertPerimetersFuture(listPerimetersToInsertCopy)
+              f2.onComplete {
+                case Failure(exception) => loger.error(exception.getMessage)
+                case Success(value) => loger.info(s"Inserted $resInt  Perimeters")
+
+              }
+          }
+
+
+        }
+
+    }
+  }
+
+  private def sendCardToDB(card: StateMachineCommand): Unit = {
 
   }
 

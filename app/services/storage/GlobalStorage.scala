@@ -7,6 +7,8 @@ import play.api.Logger
 import services.businesslogic.channelparsers.typed.ParserTyped.{ParserCommand, PatternInfo}
 import services.businesslogic.dispatchers.typed.PhisicalObjectTyped.PhisicalObjectEvent
 import services.businesslogic.statemachines.typed.StateMachineTyped.StateMachineCommand
+import services.db.DbLayer
+import services.db.DbLayer.InsertConf
 import services.storage.GlobalStorage.mapHumanNamesScale
 
 import java.util.concurrent.ConcurrentHashMap
@@ -69,10 +71,10 @@ object GlobalStorage {
   case class CreateAutoStateMachine(nameCardPattern: String,
                                     stateStorage: StateMachinesStorage,
                                     convertEmMarine: Boolean,
-                                    cardTimeout: Long, id: String) extends MainBehaviorCommand
+                                    cardTimeout: Long, dbLayer: DbLayer,  insertConf: InsertConf , id: String) extends MainBehaviorCommand
 
 
-  case class CreateRailStateMachine(stateStorage: StateMachinesStorage, id: String) extends MainBehaviorCommand
+  case class CreateRailStateMachine(stateStorage: StateMachinesStorage, dbLayer: DbLayer , insertConf: InsertConf ,  id: String) extends MainBehaviorCommand
 
 
 

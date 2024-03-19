@@ -116,9 +116,9 @@ object StateMachineTyped {
       }.to( Sink.foreach(x => system.log.info(s"Принято в KAFKA топик Cards: ${x.toString}")))
 
 
-      val sinkWemSocket: Sink[StateMachineCommand, NotUsed] = flowConverFilteredToJson.to(Sink.foreach(x => GlobalStorage.sendToAllConnection(x)))
+      val sinkWebSocket: Sink[StateMachineCommand, NotUsed] = flowConverFilteredToJson.to(Sink.foreach(x => GlobalStorage.sendToAllConnection(x)))
 
-      val sink = Sink.combine(sinkStates, sinkCards, sinkWemSocket)(Broadcast[StateMachineCommand](_))
+      val sink = Sink.combine(sinkStates, sinkCards, sinkWebSocket)(Broadcast[StateMachineCommand](_))
 
       val streamActor: ActorRef[EventStream] = sourceCommand
         .to(sink)
