@@ -76,9 +76,9 @@ class Module extends AbstractModule with AkkaGuiceSupport {
             GlobalStorage.setRefParser(id, ref)
             Behaviors.same
 
-          case CreateAutoStateMachine(nameCardPattern, stateStorage, convertEmMarine, cardTimeout, dbLayer,  insertConf, ,  id) =>
+          case CreateAutoStateMachine(nameCardPattern, stateStorage, convertEmMarine, cardTimeout, dbLayer,  insertConf, ex,  id) =>
             val actorStateMachineBehavior: Behavior[StateMachineCommand] = Behaviors.setup[StateMachineCommand] { ctx =>
-              new AutoStateMachineTyped(ctx, nameCardPattern, stateStorage, convertEmMarine, cardTimeout, dbLayer, insertConf)
+              new AutoStateMachineTyped(ctx, nameCardPattern, stateStorage, convertEmMarine, cardTimeout, dbLayer, insertConf, ex)
             }
 
             val props = MailboxSelector.fromConfig("mailboxes.state-machine-mailbox")
@@ -88,9 +88,9 @@ class Module extends AbstractModule with AkkaGuiceSupport {
             GlobalStorage.setRefSM(id, ref)
             Behaviors.same
 
-          case CreateRailStateMachine(stateStorage,dbLayer,  insertConf, id) =>
+          case CreateRailStateMachine(stateStorage,dbLayer,  insertConf, ex, id) =>
             val actorStateMachineBehavior: Behavior[StateMachineCommand] = Behaviors.setup[StateMachineCommand] { ctx =>
-              new RailStateMachineTyped(ctx, stateStorage, dbLayer, insertConf)
+              new RailStateMachineTyped(ctx, stateStorage, dbLayer, insertConf, ex)
             }
             val props = MailboxSelector.fromConfig("mailboxes.state-machine-mailbox")
             val ref = context.spawn(actorStateMachineBehavior, id, props)

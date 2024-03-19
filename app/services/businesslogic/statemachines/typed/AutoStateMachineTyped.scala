@@ -1,13 +1,14 @@
 package services.businesslogic.statemachines.typed
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
-import akka.actor.typed.{ActorSystem, Behavior}
+import akka.actor.typed.{ActorSystem, Behavior, PostStop, Signal}
 import com.google.inject.name.Named
 import executioncontexts.CustomBlockingExecutionContext
 import models.db.DbModels._
-import models.extractors.{NoCardOrWithCard, ProtocolRail}
 import models.extractors.Protocol2NoCard.{NoCard, patternPerimeters}
 import models.extractors.Protocol2WithCard.WithCard
+
+import models.extractors._
 import play.api.Logger
 import services.businesslogic.statemachines.typed.AutoStateMachineTyped.{Perimeters, StateAutoPlatform}
 import services.businesslogic.statemachines.typed.StateMachineTyped._
@@ -54,7 +55,7 @@ class AutoStateMachineWraper @Inject()(@Named("CardPatternName") nameCardPattern
                                        @Named("CardTimeout") cardTimeout: Long,
                                        dbLayer: DbLayer,
                                        insertConf: InsertConf
-                                      ) extends StateMachineWraper {
+                                      )(implicit ex: CustomBlockingExecutionContext) extends StateMachineWraper {
 
   private val logger: Logger = Logger(this.getClass)
   logger.info("Создан AutoStateMachineWraper")
@@ -82,7 +83,7 @@ class AutoStateMachineWraper @Inject()(@Named("CardPatternName") nameCardPattern
         ""
       case Success(sys) =>
         val id: String = java.util.UUID.randomUUID.toString
-        sys ! CreateAutoStateMachine(nameCardPattern, stateStorage, convertEmMarine, cardTimeout, dbLayer, insertConf, id)
+        sys ! CreateAutoStateMachine(nameCardPattern, stateStorage, convertEmMarine, cardTimeout, dbLayer, insertConf, ex, id)
         id
     }
 
@@ -96,7 +97,8 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
                             cardTimeout: Long,
                             dbLayer: DbLayer,
                             insertConf: InsertConf,
-                           )  (implicit ex: CustomBlockingExecutionContext) extends StateMachineTyped(context: ActorContext[StateMachineCommand]) {
+                            implicit val ex: CustomBlockingExecutionContext
+                           )  extends StateMachineTyped(context: ActorContext[StateMachineCommand]) {
 
   loger.info("Создан актор -  стейт машина AutoStateMachine")
   loger.info(s"Паттерн карт: $nameCardPattern")
@@ -169,25 +171,52 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
   }
 
 
+  override def onSignal: PartialFunction[Signal, Behavior[StateMachineCommand]]  = {
+    case PostStop =>
+      loger.info("AutoStateMachineTyped actor stopped")
+      insertAccumulatedStates()
+      this
+
+  }
+
+
+
   override def onMessage(msg: StateMachineCommand): Behavior[StateMachineCommand] = {
     context.log.info("Create onMessage Behavior")
+
     msg match {
+
+      case Stop =>
+        context.log.info("AutoStateMachine stopped", name)
+        Behaviors.stopped
+
+
       case Name(n) =>
         name = n
         loger.info("onMessage", "Name")
         work()
+
       case _ => Behaviors.same
     }
+
+
   }
 
 
   private def work(): Behavior[StateMachineCommand] = Behaviors.receiveMessage[StateMachineCommand] { message =>
     context.log.info("Create work Behavior")
     message match {
+
+      case Stop =>
+        context.log.info("AutoStateMachine stopped", name)
+        Behaviors.stopped
+
       case ProtocolExecute(mess) => protocolExecute(mess)
         loger.info(s"work ProtocolExecute  $name", "ProtocolExecute")
         val optHumanName = GlobalStorage.getOptionHumanNameScaleByName(name)
-        val respSend = StreamFeeder.send(ProtocolExecuteWithName(mess, name, optHumanName.getOrElse(""), idnx))
+        val protocolWithName = ProtocolExecuteWithName(mess, name, optHumanName.getOrElse(""), idnx)
+        sendStateToDB(protocolWithName)
+        val respSend = StreamFeeder.send(protocolWithName)
         respSend match {
           case Left(exp) => context.log.error(exp.getMessage)
           case Right(value) => context.log.info(s"Send to stream: $value")
@@ -196,7 +225,9 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
 
       case CardExecute(card) =>
         loger.info(s"work CardExecute  $name", "CardExecute")
-        val respSend = StreamFeeder.send(CardExecuteWithName(card, name))
+        val cardWithName = CardExecuteWithName(card, name)
+        sendCardToDB(cardWithName)
+        val respSend = StreamFeeder.send(cardWithName)
         respSend match {
           case Left(exp) => context.log.error(exp.getMessage)
           case Right(value) => context.log.info(s"Send to stream: $value")
@@ -218,6 +249,10 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
 
     timers.startSingleTimer(Timeout, cardTimeout second)
     Behaviors.receiveMessagePartial {
+      case Stop =>
+        context.log.info("AutoStateMachine stopped", name)
+        Behaviors.stopped
+
       case Flush =>
         loger.info("timeout  Flush", "Flush")
         workedCard.setState(None)
@@ -228,7 +263,9 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
         loger.warn("timeout  Timeout!!!!!!", "Timeout")
         workedCard.setState(None)
         cardProcessingBusy = false
-        val respSend = StreamFeeder.send(TimeoutWithName(name))
+        val timeoutWithName = TimeoutWithName(name)
+        sendCardToDB(timeoutWithName)
+        val respSend = StreamFeeder.send(timeoutWithName)
         respSend match {
           case Left(exp) => context.log.error(exp.getMessage)
           case Right(value) => context.log.info(s"Send to stream: $value")
@@ -238,9 +275,8 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
       case message@ProtocolExecute(mess) => protocolExecute(mess)
         loger.info(s"timeout ProtocolExecute  $name", "ProtocolExecute")
         val optHumanName = GlobalStorage.getOptionHumanNameScaleByName(name)
-
         val protocolWithName = ProtocolExecuteWithName(mess, name, optHumanName.getOrElse(""), idnx)
-
+        sendStateToDB(protocolWithName)
         val respSend = StreamFeeder.send(protocolWithName)
         respSend match {
           case Left(exp) => context.log.error(exp.getMessage)
@@ -255,7 +291,9 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
 
       case message@CardRespToState(param) =>
         loger.info(s"timeout  CardRespToState  $name  Обработка карты завершена. Параметр $param.")
-        val respSend = StreamFeeder.send(CardRespToStateWithName(param, name))
+        val cardWithName = CardRespToStateWithName(param, name)
+        sendCardToDB(cardWithName)
+        val respSend = StreamFeeder.send(cardWithName)
         respSend match {
           case Left(exp) => context.log.error(exp.getMessage)
           case Right(value) => context.log.info(s"Send to stream: $value")
@@ -270,7 +308,28 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
   }
 
 
-  private def sendStatesToDB(state: StateMachineCommand): Unit = {
+  private def insertAccumulatedStates(): Unit = {
+    val listStatesToInsertCopy = listStatesToInsert
+    val listPerimetersToInsertCopy = listPerimetersToInsert
+    listStatesToInsert = List()
+    listPerimetersToInsert = List()
+
+    val f1 = dbLayer.insertProtokolsFuture(listStatesToInsertCopy)
+    f1.onComplete {
+      case Failure(exception) =>
+        loger.error(exception.getMessage)
+      case Success(resInt) =>
+        loger.info(s"Inserted $resInt  Protokols")
+        val f2 = dbLayer.insertPerimetersFuture(listPerimetersToInsertCopy)
+        f2.onComplete {
+          case Failure(exception) => loger.error(exception.getMessage)
+          case Success(resInt) => loger.info(s"Inserted $resInt  Perimeters")
+
+        }
+    }
+  }
+
+  private def sendStateToDB(state: StateMachineCommand): Unit = {
     state match {
       case obj: ProtocolExecuteWithName =>
         val id: String = java.util.UUID.randomUUID().toString
@@ -279,7 +338,6 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
 
         val (prefix, weight, crc, optSvetofor) = objmessage match {
           case NoCard(prefix, perimeters, weight, crc, svetofor) => (prefix, weight.trim.toInt, crc, Some(svetofor))
-          case ProtocolRail.RailWeight(prefix, weight) => (prefix, weight.trim.toInt, "", None)
           case WithCard(prefix, perimeters, weight, crc, card, typeCard, svetofor) => (prefix, weight.trim.toInt, crc, Some(svetofor))
           case _ => ("", 0, "", None)
         }
@@ -301,32 +359,45 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
         }
 
         if (listStatesToInsert.size >= insertConf.state.listMaxSize ) {
-          val listStatesToInsertCopy = listStatesToInsert
-          val listPerimetersToInsertCopy = listPerimetersToInsert
-          listStatesToInsert = List()
-          listPerimetersToInsert = List()
-
-          val f1 =  dbLayer.insertProtokolsFuture(listStatesToInsertCopy)
-          f1.onComplete {
-            case Failure(exception) =>
-              loger.error(exception.getMessage)
-            case Success(resInt) =>
-              loger.info(s"Inserted $resInt  Protokols")
-              val f2 = dbLayer.insertPerimetersFuture(listPerimetersToInsertCopy)
-              f2.onComplete {
-                case Failure(exception) => loger.error(exception.getMessage)
-                case Success(value) => loger.info(s"Inserted $resInt  Perimeters")
-
-              }
-          }
-
-
+          insertAccumulatedStates()
         }
+
+      case _ =>
 
     }
   }
 
+
+  private def insertAccumulatedCards(): Unit = {
+    val listCardsToInsertCopy =  listCardsToInsert
+    listCardsToInsert = List()
+
+    val f = dbLayer.insertCardsFuture(listCardsToInsertCopy)
+    f.onComplete {
+      case Failure(exception) => loger.error(exception.getMessage)
+      case Success(resInt) => loger.info(s"Inserted $resInt  Cards")
+    }
+  }
+
   private def sendCardToDB(card: StateMachineCommand): Unit = {
+    val id: String = java.util.UUID.randomUUID().toString
+    val modified = Timestamp.from(Instant.now())
+
+    val optdbCard: Option[DbCard] = card match {
+      case CardExecuteWithName(card, name) => Some(DbCard(UidREF(id), name, execute = true, resp = false, timeout = false, Some(card), None, modified))
+      case CardRespToStateWithName(param, name) => Some(DbCard(UidREF(id), name, execute = false, resp = true,timeout = false, None, Some(param), modified))
+      case TimeoutWithName(name) => Some (DbCard(UidREF(id), name, execute = false, resp = false, timeout = true, None, None, modified))
+      case _ => None
+    }
+
+    if (optdbCard.isDefined) {
+      listCardsToInsert = listCardsToInsert :+ optdbCard.get
+    }
+
+    if (listCardsToInsert.size >= insertConf.card.listMaxSize) {
+      insertAccumulatedCards()
+    }
+
 
   }
 

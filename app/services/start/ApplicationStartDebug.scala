@@ -1,6 +1,7 @@
 package services.start
 
-import akka.actor.ActorSystem
+
+import akka.actor.{ActorSystem, typed}
 import akka.io.Tcp
 import akka.util.ByteString
 import models.configs.Serverconf
@@ -12,7 +13,10 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.{Application, Configuration, Logger, Play}
 import services.businesslogic.dispatchers.typed.PhisicalObjectTyped
 import services.businesslogic.managers.PhisicalObjectsManager
+import services.businesslogic.statemachines.typed.StateMachineTyped
+import services.businesslogic.statemachines.typed.StateMachineTyped.Stop
 import services.db.DbLayer
+import services.storage.StateMachinesStorage
 
 import java.util.Locale
 import javax.inject._
@@ -31,7 +35,7 @@ trait InterfaceStart {
 class ApplicationStartDebug @Inject()(lifecycle: ApplicationLifecycle, environment: play.api.Environment,
                                       injector: Injector, config: Configuration,tcpBuilder: TcpServerBuilder,
                                       implicit val system: ActorSystem, tcpClientsManager: TestTcpClientsManager,
-                                      dispatchers: PhisicalObjectsManager, dbLayer: DbLayer)
+                                      dispatchers: PhisicalObjectsManager, dbLayer: DbLayer, stateMashinesStorage: StateMachinesStorage)
   extends InterfaceStart with TcpClientOwner with WebModelsWritesReads {
 
   val logger: Logger = Logger(this.getClass)
@@ -40,6 +44,16 @@ class ApplicationStartDebug @Inject()(lifecycle: ApplicationLifecycle, environme
   lifecycle.addStopHook { () =>
     val mess = "Остановка Oilserver"
     logger.info(mess)
+
+    val listStM: List[(String, typed.ActorRef[StateMachineTyped.StateMachineCommand])] = stateMashinesStorage.getListT
+
+    listStM. foreach{x =>
+      x._2 ! Stop
+    }
+
+
+
+
     Future.successful(mess)
   }
 

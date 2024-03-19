@@ -48,6 +48,8 @@ object StateMachineTyped {
   case object Timeout extends StateMachineCommand
   case class  TimeoutWithName(name:String) extends StateMachineCommand
 
+  case object Stop extends StateMachineCommand
+
 
   object StreamFeeder extends WebModelsWritesReads {
 

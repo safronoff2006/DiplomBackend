@@ -1,7 +1,9 @@
 package services.businesslogic.statemachines.typed
 
-import akka.actor.typed.{ActorSystem, Behavior}
+import akka.actor.typed.{ActorSystem, Behavior, PostStop, Signal}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
+import executioncontexts.CustomBlockingExecutionContext
+import models.db.DbModels.{DbProtokol, UidREF}
 import models.extractors.NoCardOrWithCard
 import models.extractors.ProtocolRail.RailWeight
 import play.api.Logger
@@ -14,6 +16,8 @@ import services.storage.{GlobalStorage, StateMachinesStorage}
 import utils.AtomicOption
 import services.storage.GlobalStorage.CreateRailStateMachine
 
+import java.sql.Timestamp
+import java.time.Instant
 import javax.inject.Inject
 import scala.util.{Failure, Success, Try}
 
@@ -21,7 +25,7 @@ object RailStateMachineTyped {
   case class StateRailPlatform(weight: Int) extends StatePlatform
 }
 
-class RailStateMachineWraper @Inject()(stateStorage: StateMachinesStorage, dbLayer: DbLayer, insertConf: InsertConf) extends StateMachineWraper {
+class RailStateMachineWraper @Inject()(stateStorage: StateMachinesStorage, dbLayer: DbLayer, insertConf: InsertConf)(implicit ex: CustomBlockingExecutionContext) extends StateMachineWraper {
 
   private val logger: Logger = Logger(this.getClass)
   logger.info("Создан RailStateMachineWraper")
@@ -49,7 +53,7 @@ class RailStateMachineWraper @Inject()(stateStorage: StateMachinesStorage, dbLay
         ""
       case Success(sys) =>
         val id: String = java.util.UUID.randomUUID.toString
-        sys ! CreateRailStateMachine(stateStorage, dbLayer, insertConf,  id)
+        sys ! CreateRailStateMachine(stateStorage, dbLayer, insertConf, ex, id)
         id
     }
 
@@ -58,7 +62,7 @@ class RailStateMachineWraper @Inject()(stateStorage: StateMachinesStorage, dbLay
 }
 
 
-class  RailStateMachineTyped(context: ActorContext[StateMachineCommand],stateStorage: StateMachinesStorage, dbLayer: DbLayer, insertConf: InsertConf)
+class RailStateMachineTyped(context: ActorContext[StateMachineCommand], stateStorage: StateMachinesStorage, dbLayer: DbLayer, insertConf: InsertConf, implicit val ex: CustomBlockingExecutionContext)
   extends StateMachineTyped(context: ActorContext[StateMachineCommand]) {
 
   loger.info("Создан актор -  стейт машина RailStateMachineTyped")
@@ -66,22 +70,38 @@ class  RailStateMachineTyped(context: ActorContext[StateMachineCommand],stateSto
 
   override def register(name: String): Unit = stateStorage.addT(name, context.self)
 
-  private val listStatesToInsert: List[StateMachineCommand] = List()
+  private var listStatesToInsert: List[DbProtokol] = List()
 
 
-  override def getState: Option[StatePlatform]  = state.getState
+  override def getState: Option[StatePlatform] = state.getState
+
+
+  override def onSignal: PartialFunction[Signal, Behavior[StateMachineCommand]] = {
+    case PostStop =>
+      loger.info("RailStateMachineTyped actor stopped")
+      insertAccumulatedStates()
+      this
+
+  }
 
   override def onMessage(msg: StateMachineCommand): Behavior[StateMachineCommand] = {
     msg match {
+
+      case Stop =>
+        context.log.info("RailStateMachine stopped", name)
+        Behaviors.stopped
+
       case Name(n) =>
         name = n
-        loger.info("onMessage","Name")
+        loger.info("onMessage", "Name")
         Behaviors.same
 
       case ProtocolExecute(message) => protocolExecute(message)
         loger.info("onMessage", "ProtocolExecute")
         val optHumanName = GlobalStorage.getOptionHumanNameScaleByName(name)
-        val respSend = StreamFeeder.send(ProtocolExecuteWithName(message, name, optHumanName.getOrElse(""), idnx) )
+        val protokolWithName = ProtocolExecuteWithName(message, name, optHumanName.getOrElse(""), idnx)
+        sendStatesToDB(protokolWithName)
+        val respSend = StreamFeeder.send(protokolWithName)
 
         respSend match {
           case Left(exp) => context.log.error(exp.getMessage)
@@ -93,7 +113,7 @@ class  RailStateMachineTyped(context: ActorContext[StateMachineCommand],stateSto
         loger.info("onMessage", "GetState", getState)
         Behaviors.same
 
-      case _ =>   Behaviors.same
+      case _ => Behaviors.same
     }
   }
 
@@ -109,8 +129,37 @@ class  RailStateMachineTyped(context: ActorContext[StateMachineCommand],stateSto
 
   }
 
-  private def sendStatesToDB(state: StateMachineCommand): Unit = {
+  private def insertAccumulatedStates(): Unit = {
+    val listStatesToInsertCopy = listStatesToInsert
+    val f = dbLayer.insertProtokolsFuture(listStatesToInsertCopy)
+    f.onComplete {
+      case Failure(exception) => loger.error(exception.getMessage)
+      case Success(resInt) => loger.info(s"Insert $resInt Protokols")
+    }
+  }
 
+  private def sendStatesToDB(state: StateMachineCommand): Unit = {
+    state match {
+      case obj: ProtocolExecuteWithName =>
+        val id: String = java.util.UUID.randomUUID().toString
+        val modified = Timestamp.from(Instant.now())
+        val objmessage: NoCardOrWithCard = obj.message
+
+        val (prefix, weight, crc, optSvetofor) = objmessage match {
+          case RailWeight(prefix, weight) => (prefix, weight.trim.toInt, "", None)
+          case _ => ("", 0, "", None)
+        }
+
+        val dbprotokol: DbProtokol = DbProtokol(UidREF(id), obj.name, obj.humanName, obj.indx, prefix, weight, crc, optSvetofor, modified)
+
+        listStatesToInsert = listStatesToInsert :+ dbprotokol
+
+        if (listStatesToInsert.size >= insertConf.state.listMaxSize) {
+          insertAccumulatedStates()
+        }
+
+      case _ =>
+    }
   }
 
 }

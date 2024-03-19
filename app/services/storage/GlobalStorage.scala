@@ -2,6 +2,7 @@ package services.storage
 
 import akka.actor.typed.{ActorRef, ActorSystem}
 import controllers.WebSocketController.MapWsType
+import executioncontexts.CustomBlockingExecutionContext
 import models.connection.WebSocketConection
 import play.api.Logger
 import services.businesslogic.channelparsers.typed.ParserTyped.{ParserCommand, PatternInfo}
@@ -71,10 +72,10 @@ object GlobalStorage {
   case class CreateAutoStateMachine(nameCardPattern: String,
                                     stateStorage: StateMachinesStorage,
                                     convertEmMarine: Boolean,
-                                    cardTimeout: Long, dbLayer: DbLayer,  insertConf: InsertConf , id: String) extends MainBehaviorCommand
+                                    cardTimeout: Long, dbLayer: DbLayer, insertConf: InsertConf, ex:CustomBlockingExecutionContext, id: String) extends MainBehaviorCommand
 
 
-  case class CreateRailStateMachine(stateStorage: StateMachinesStorage, dbLayer: DbLayer , insertConf: InsertConf ,  id: String) extends MainBehaviorCommand
+  case class CreateRailStateMachine(stateStorage: StateMachinesStorage, dbLayer: DbLayer , insertConf: InsertConf,ex: CustomBlockingExecutionContext,  id: String) extends MainBehaviorCommand
 
 
 
