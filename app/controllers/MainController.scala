@@ -4,10 +4,10 @@ package controllers
 import akka.NotUsed
 import akka.stream.scaladsl.{Flow, Source}
 import executioncontexts.CustomBlockingExecutionContext
-import models.db.DbModels.Test
+import models.db.DbModels.{DbCard, ProtokolWithCards, Test}
 import models.readerswriters.CardModel
 import models.readerswriters.CardModel.CardModelWritesReads
-import models.readerswriters.WebModels.{WebModelsWritesReads, WebTest}
+import models.readerswriters.WebModels.{WebCard, WebModelsWritesReads, WebTest}
 import models.readerswriters.WorkplaceModel.WorkplaceModelWritesReads
 import play.api._
 import play.api.libs.json.{JsArray, JsString, JsValue, Json}
@@ -204,7 +204,6 @@ class MainController @Inject()(val cc: ControllerComponents, stateStorage: State
   }
 
 
-
   def getAllTestsWithStream: Action[AnyContent] = Action { implicit request =>
     val publisher: DatabasePublisher[Test] = dbLayer.getAllTestStream
     val testsSource: Source[JsValue, NotUsed] = Source.fromPublisher(publisher)
@@ -224,7 +223,7 @@ class MainController @Inject()(val cc: ControllerComponents, stateStorage: State
   }
   }
 
-  def getTestByIdWithStream(id: String): Action[AnyContent]  = Action { implicit request =>
+  def getTestByIdWithStream(id: String): Action[AnyContent] = Action { implicit request =>
     val publisher = dbLayer.getTestByIdWithStream(id)
     val testsSource: Source[JsValue, NotUsed] = Source.fromPublisher(publisher)
       .via(Flow[Test].map(x => x: WebTest))
@@ -232,4 +231,37 @@ class MainController @Inject()(val cc: ControllerComponents, stateStorage: State
 
     Ok.chunked(testsSource)
   }
+
+  ///////////////// рабочее
+
+  def getAllCards: Action[AnyContent] = Action { implicit request =>
+    val publisher = dbLayer.getAllCardsS
+    val cardsSource = Source.fromPublisher(publisher)
+      .via(Flow[DbCard].map(x => x: WebCard))
+      .via(Flow[WebCard].map(x => Json.toJson(x)))
+    Ok.chunked(cardsSource)
+  }
+
+  def getCardById(id: String): Action[AnyContent] = Action { implicit request =>
+    val publisher = dbLayer.getByIdCardS(id)
+    val cardsSource = Source.fromPublisher(publisher)
+      .via(Flow[DbCard].map(x => x: WebCard))
+      .via(Flow[WebCard].map(x => Json.toJson(x)))
+    Ok.chunked(cardsSource)
+  }
+
+  def getAllProtokols: Action[AnyContent] = Action { implicit request =>
+    val publisher = dbLayer.getAllProtokolsWithPerimetersS
+    val protokolSource = Source.fromPublisher(publisher)
+      .via(Flow[ProtokolWithCards].map(x => x.toString() + "\n"))
+    Ok.chunked(protokolSource)
+  }
+
+  def getProtokolById(id: String): Action[AnyContent] = Action { implicit request =>
+    val publisher = dbLayer.getByIdProtokolsWithPerimetersS(id)
+    val protokolSource = Source.fromPublisher(publisher)
+      .via(Flow[ProtokolWithCards].map(x => x.toString() + "\n"))
+    Ok.chunked(protokolSource)
+  }
+
 }

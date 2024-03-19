@@ -3,7 +3,7 @@ package services.db
 import akka.actor.ActorSystem
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import executioncontexts.CustomBlockingExecutionContext
-import models.db.DbModels.{DbCard, DbPerimeters, DbProtokol, Test, UidREF}
+import models.db.DbModels._
 import models.db.DbSchema
 import play.api.Logger
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -19,6 +19,7 @@ object DbLayer {
   case class InsertConf(test: InsertInnerConf, state: InsertInnerConf, card: InsertInnerConf)
 }
 
+//noinspection ScalaWeakerAccess
 class DbLayer @Inject()(protected val dbConfigProvider: DatabaseConfigProvider, dbShema: DbSchema, insertConf: InsertConf)
                        (implicit executionContext: CustomBlockingExecutionContext, implicit val system: ActorSystem)
                         extends HasDatabaseConfigProvider[JdbcProfile]{
@@ -83,11 +84,66 @@ class DbLayer @Inject()(protected val dbConfigProvider: DatabaseConfigProvider, 
 
 
 
+  private def getAllProtokolsWithPerimetersQuery = for {
+    (prot, per) <- protokol.sortBy(_.modified)  joinLeft perimeters on (_.id === _.id )
+  } yield (prot.id, prot.weight, prot.crc, prot.prefix, prot.name, prot.humanName, prot.svetofor, prot.modified, per.map(_.value))
 
 
+  def getAllProtokolsWithPerimetersF: Future[Seq[ProtokolWithCards]] =
+    db.run(getAllProtokolsWithPerimetersQuery.result)
+
+  def getAllProtokolsWithPerimetersS: DatabasePublisher[ProtokolWithCards] =
+    db.stream{
+      val result = getAllProtokolsWithPerimetersQuery.result
+      result.withStatementParameters(
+        rsType = ResultSetType.ForwardOnly,
+        rsConcurrency = ResultSetConcurrency.ReadOnly,
+        fetchSize = 10000
+      ).transactionally
+    }
 
 
+  //noinspection TypeAnnotation
+  private def getByIdProtokolsWithPerimetersQuery(idd:String)  = for {
+    (prot, per) <- protokol.filter(_.id === UidREF(idd)) joinLeft perimeters on (_.id === _.id)
+  } yield (prot.id, prot.weight, prot.crc, prot.prefix, prot.name, prot.humanName, prot.svetofor, prot.modified, per.map(_.value))
+
+  def getByIdProtokolsWithPerimetersF(idd: String): Future[Option[ProtokolWithCards]] =
+    db.run(getByIdProtokolsWithPerimetersQuery(idd).result.headOption)
+
+  def getByIdProtokolsWithPerimetersS(idd: String): DatabasePublisher[ProtokolWithCards] =
+    db.stream{
+      val result =  getByIdProtokolsWithPerimetersQuery(idd).result
+      result.withStatementParameters(
+        rsType = ResultSetType.ForwardOnly,
+        rsConcurrency = ResultSetConcurrency.ReadOnly,
+        fetchSize = 10000
+      ).transactionally
+    }
 
 
+  //noinspection TypeAnnotation
+  private def getAllCardsQuery =  card.sortBy(_.modified).result
+
+  def getAllCardsF: Future[Seq[DbCard]] = db.run(getAllCardsQuery)
+
+  def getAllCardsS: DatabasePublisher[DbCard] = db.stream(getAllCardsQuery
+    .withStatementParameters(
+    rsType = ResultSetType.ForwardOnly,
+    rsConcurrency = ResultSetConcurrency.ReadOnly,
+    fetchSize = 10000
+  ).transactionally)
+
+  //noinspection TypeAnnotation
+  private def getByIdCardQuery(idd: String) = card.filter(_.id === UidREF(idd)).result
+
+  def getByIdCardF(idd: String): Future[Option[DbCard]] =  db.run(getByIdCardQuery(idd).headOption)
+
+  def getByIdCardS(idd: String): DatabasePublisher[DbCard] = db.stream(getByIdCardQuery(idd)
+    .withStatementParameters(
+    rsType = ResultSetType.ForwardOnly,
+    rsConcurrency = ResultSetConcurrency.ReadOnly,
+    fetchSize = 10000
+  ).transactionally)
 
 }

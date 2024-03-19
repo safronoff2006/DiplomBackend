@@ -48,10 +48,10 @@ class DbSchema  @Inject()(protected val dbConfigProvider: DatabaseConfigProvider
     def prefix = column[String]("prefix", O.Default("v"))
     def weight = column[Int]("weight", O.Default(0))
     def crc = column[String]("crc", O.Default(""))
-    def svetofor = column[String]("svetofor", O.Default("?"))
+    def svetofor = column[Option[String]]("svetofor")
     def modified = column[Timestamp]("modified", O.SqlType("timestamp with time zone   not null  default CURRENT_TIMESTAMP") )
 
-    def * = (id, name, humanName, indx, prefix, weight, crc, svetofor.?, modified) <> (DbProtokol.tupled, DbProtokol.unapply )
+    def * = (id, name, humanName, indx, prefix, weight, crc, svetofor, modified) <> (DbProtokol.tupled, DbProtokol.unapply )
 
   }
 
@@ -78,11 +78,11 @@ class DbSchema  @Inject()(protected val dbConfigProvider: DatabaseConfigProvider
     def execute = column[Boolean]("execute", O.Default(false))
     def resp = column[Boolean]("resp", O.Default(false))
     def timeout = column[Boolean]("timeout", O.Default(false))
-    def card = column[String]("card", O.Length(50))
-    def param = column[String]("param", O.Length(100))
+    def card = column[Option[String]]("card", O.Length(50))
+    def param = column[Option[String]]("param", O.Length(100))
     def modified = column[Timestamp]("modified", O.SqlType("timestamp with time zone   not null  default CURRENT_TIMESTAMP") )
 
-    def * =  (id, name, execute, resp, timeout, card.?, param.?, modified) <> (DbCard.tupled, DbCard.unapply)
+    def * =  (id, name, execute, resp, timeout, card, param, modified) <> (DbCard.tupled, DbCard.unapply)
 
   }
 

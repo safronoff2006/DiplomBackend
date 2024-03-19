@@ -53,4 +53,6 @@ object DbModels {
 
 
 
+  type ProtokolWithCards = (UidREF, Int, String, String, String, String, Option[String], Timestamp, Option[String])
+
 }

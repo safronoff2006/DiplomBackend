@@ -34,3 +34,11 @@ GET     /getAllTestsWithStream      controllers.MainController.getAllTestsWithSt
 
 GET     /getTestByIdWithStream      controllers.MainController.getTestByIdWithStream(id: String)
 
+## рабочее
+
+GET     /getAllCards                controllers.MainController.getAllCards
+GET     /getCardById                controllers.MainController.getCardById(id: String)
+
+GET     /getAllProtokols            controllers.MainController.getAllProtokols
+GET     /getProtokolById            controllers.MainController.getProtokolById(id: String)
+

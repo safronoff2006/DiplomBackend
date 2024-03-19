@@ -14,7 +14,7 @@ import services.storage.GlobalStorage.WebProtokol
 
 import scala.language.implicitConversions
 
-object WebModels {
+object WebModels extends TimestampFormat {
   val logger: Logger = Logger(this.getClass)
 
 
@@ -47,11 +47,11 @@ object WebModels {
 
   implicit def convertDbCardToWebCard(obj: DbCard): WebCard =
     WebCard(obj.id.value, obj.name, obj.execute, obj.resp, obj.timeout, obj.card.getOrElse(""), obj.param.getOrElse(""),
-      Json.toJson(obj.modified).toString())
+      Json.toJson(obj.modified).as[String])
 
 
 
-  trait WebModelsWritesReads {
+  trait WebModelsWritesReads extends  TimestampFormat {
 
     case class PerimetersSerialized(in: String, out: String, left: String, right: String)
 
@@ -189,7 +189,19 @@ object WebModels {
 
 
 
-    ///////
+    /////// рабочее
+
+    implicit val WebCardWrites: Writes[WebCard] = (
+      (JsPath \ "id").write[String] and
+        (JsPath \"name").write[String] and
+        (JsPath \ "execute").write[Boolean] and
+        (JsPath \ "resp").write[Boolean] and
+        (JsPath \ "timeout").write[Boolean] and
+        (JsPath \ "card" ).write[String] and
+        (JsPath \ "param" ).write[String] and
+        (JsPath \ "modified" ).write[String]
+      ) (unlift (WebCard.unapply))
+
 
 
   }
