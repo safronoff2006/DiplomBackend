@@ -1,10 +1,9 @@
-package services.start
+package net.tcp
 
 import akka.actor.{ActorRef, ActorSystem, Cancellable, Scheduler}
 import akka.io.Tcp
 import akka.util.ByteString
 import models.configs.Server
-import net.tcp.{ConnectToServer, TcpClient, TcpClientOwner}
 import play.api.Logger
 import services.storage.TcpStorage
 import utils.AtomicOption
@@ -20,8 +19,8 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 case class ClientConf(id:String, port: Int, client: ActorRef )
 
 @Singleton
-class TestTcpClientsManager @Inject()(tcpStorage: TcpStorage, system: ActorSystem,
-                                      @Named("HostIp") hostip: String) extends TcpClientOwner {
+class TcpClientsManager @Inject()(tcpStorage: TcpStorage, system: ActorSystem,
+                                  @Named("HostIp") hostip: String) extends TcpClientOwner {
 
   val logger: Logger = Logger(this.getClass)
   logger.info("Загружен TestTcpClientsManager")

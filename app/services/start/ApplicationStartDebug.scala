@@ -33,8 +33,8 @@ trait InterfaceStart {
 
 @Singleton
 class ApplicationStartDebug @Inject()(lifecycle: ApplicationLifecycle, environment: play.api.Environment,
-                                      injector: Injector, config: Configuration,tcpBuilder: TcpServerBuilder,
-                                      implicit val system: ActorSystem, tcpClientsManager: TestTcpClientsManager,
+                                      injector: Injector, config: Configuration, tcpBuilder: TcpServerBuilder,
+                                      implicit val system: ActorSystem, tcpClientsManager: TcpClientsManager,
                                       dispatchers: PhisicalObjectsManager, dbLayer: DbLayer, stateMashinesStorage: StateMachinesStorage)
   extends InterfaceStart with TcpClientOwner with WebModelsWritesReads {
 
