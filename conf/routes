@@ -42,5 +42,5 @@ GET     /getCardById                controllers.MainController.getCardById(id: S
 GET     /getAllProtokols            controllers.MainController.getAllProtokols
 GET     /getProtokolById            controllers.MainController.getProtokolById(id: String)
 
-GET     /                                   controllers.Assets.at(path="/public/web", file="index.html")
-GET     /*file                              controllers.Assets.at(path="/public/web", file)
+GET     /                            controllers.Assets.at(path="/public/web", file="index.html")
+GET     /*file                       controllers.Assets.at(path="/public/web", file)

@@ -203,7 +203,7 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
   }
 
 
-  private def work(): Behavior[StateMachineCommand] = Behaviors.receiveMessage[StateMachineCommand] { message =>
+  private val work: () => Behavior[StateMachineCommand] = () => Behaviors.receiveMessage[StateMachineCommand] { message =>
     context.log.info("Create work Behavior")
     message match {
 
@@ -245,7 +245,7 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
 
   private val work_  = work()
 
-  private def withready(): Behavior[StateMachineCommand] = Behaviors.withTimers[StateMachineCommand] { timers =>
+  private val withready: () => Behavior[StateMachineCommand] = () => Behaviors.withTimers[StateMachineCommand] { timers =>
 
     context.log.info("Create timeout Behavior")
 
@@ -274,21 +274,6 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
         }
         work_
 
-      case message@ProtocolExecute(mess) => protocolExecute(mess)
-        loger.info(s"timeout ProtocolExecute  $name", "ProtocolExecute")
-        val optHumanName = GlobalStorage.getOptionHumanNameScaleByName(name)
-        val protocolWithName = ProtocolExecuteWithName(mess, name, optHumanName.getOrElse(""), idnx)
-        sendStateToDB(protocolWithName)
-        val respSend = StreamFeeder.send(protocolWithName)
-        respSend match {
-          case Left(exp) => context.log.error(exp.getMessage)
-          case Right(value) => context.log.info(s"Send to stream: $value")
-        }
-        withready_
-
-      case GetState =>
-        loger.info(s"timeout GetState $name    $getState", "GetState", "getState")
-        withready_
 
 
       case message@CardRespToState(param) =>
