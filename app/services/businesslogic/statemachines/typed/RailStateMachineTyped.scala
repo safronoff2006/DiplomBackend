@@ -79,7 +79,6 @@ class RailStateMachineTyped(context: ActorContext[StateMachineCommand], stateSto
   override def onSignal: PartialFunction[Signal, Behavior[StateMachineCommand]] = {
     case PostStop =>
       loger.info("RailStateMachineTyped actor stopped")
-      insertAccumulatedStates()
       this
 
   }
@@ -131,6 +130,7 @@ class RailStateMachineTyped(context: ActorContext[StateMachineCommand], stateSto
 
   private def insertAccumulatedStates(): Unit = {
     val listStatesToInsertCopy = listStatesToInsert
+    listStatesToInsert = List()
     val f = dbLayer.insertProtokolsFuture(listStatesToInsertCopy)
     f.onComplete {
       case Failure(exception) => loger.error(exception.getMessage)
@@ -141,7 +141,7 @@ class RailStateMachineTyped(context: ActorContext[StateMachineCommand], stateSto
   private def sendStatesToDB(state: StateMachineCommand): Unit = {
     state match {
       case obj: ProtocolExecuteWithName =>
-        val id: String = java.util.UUID.randomUUID().toString
+
         val modified = Timestamp.from(Instant.now())
         val objmessage: NoCardOrWithCard = obj.message
 
@@ -150,8 +150,10 @@ class RailStateMachineTyped(context: ActorContext[StateMachineCommand], stateSto
           case _ => ("", 0, "", None)
         }
 
-        val dbprotokol: DbProtokol = DbProtokol(UidREF(id), obj.name, obj.humanName, obj.indx, prefix, weight, crc, optSvetofor, modified)
-
+        val uuid = java.util.UUID.randomUUID().toString
+        loger.info(s"uuid = $uuid")
+        val dbprotokol: DbProtokol = DbProtokol(UidREF(uuid), obj.name, obj.humanName, obj.indx, prefix, weight, crc, optSvetofor, modified)
+        loger.info(s"DbProtokol $dbprotokol")
         listStatesToInsert = listStatesToInsert :+ dbprotokol
 
         if (listStatesToInsert.size >= insertConf.state.listMaxSize) {

@@ -194,7 +194,7 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
       case Name(n) =>
         name = n
         loger.info("onMessage", "Name")
-        work()
+        work_
 
       case _ => Behaviors.same
     }
@@ -221,7 +221,7 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
           case Left(exp) => context.log.error(exp.getMessage)
           case Right(value) => context.log.info(s"Send to stream: $value")
         }
-        work()
+        work_
 
       case CardExecute(card) =>
         loger.info(s"work CardExecute  $name", "CardExecute")
@@ -232,16 +232,18 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
           case Left(exp) => context.log.error(exp.getMessage)
           case Right(value) => context.log.info(s"Send to stream: $value")
         }
-        withready()
+        withready_
 
       case GetState =>
         loger.info(s"work GetState $name    $getState", "GetState", "getState")
-        work()
+        work_
 
       case _ => Behaviors.same
 
     }
   }
+
+  private val work_  = work()
 
   private def withready(): Behavior[StateMachineCommand] = Behaviors.withTimers[StateMachineCommand] { timers =>
 
@@ -257,7 +259,7 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
         loger.info("timeout  Flush", "Flush")
         workedCard.setState(None)
         cardProcessingBusy = false
-        work()
+        work_
 
       case message@Timeout =>
         loger.warn("timeout  Timeout!!!!!!", "Timeout")
@@ -270,7 +272,7 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
           case Left(exp) => context.log.error(exp.getMessage)
           case Right(value) => context.log.info(s"Send to stream: $value")
         }
-        work()
+        work_
 
       case message@ProtocolExecute(mess) => protocolExecute(mess)
         loger.info(s"timeout ProtocolExecute  $name", "ProtocolExecute")
@@ -282,11 +284,11 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
           case Left(exp) => context.log.error(exp.getMessage)
           case Right(value) => context.log.info(s"Send to stream: $value")
         }
-        withready()
+        withready_
 
       case GetState =>
         loger.info(s"timeout GetState $name    $getState", "GetState", "getState")
-        withready()
+        withready_
 
 
       case message@CardRespToState(param) =>
@@ -300,12 +302,14 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
         }
         workedCard.setState(None)
         cardProcessingBusy = false
-        work()
+        work_
 
       case _ => Behaviors.same
     }
 
   }
+
+  private val withready_ = withready()
 
 
   private def insertAccumulatedStates(): Unit = {
@@ -330,11 +334,12 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
   }
 
   private def sendStateToDB(state: StateMachineCommand): Unit = {
+
+    val modified = Timestamp.from(Instant.now())
     state match {
       case obj: ProtocolExecuteWithName =>
-        val id: String = java.util.UUID.randomUUID().toString
         val objmessage: NoCardOrWithCard = obj.message
-        val modified = Timestamp.from(Instant.now())
+
 
         val (prefix, weight, crc, optSvetofor) = objmessage match {
           case NoCard(prefix, perimeters, weight, crc, svetofor) => (prefix, weight.trim.toInt, crc, Some(svetofor))
@@ -343,16 +348,18 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
         }
 
 
+
+        val id: String = java.util.UUID.randomUUID().toString
+        val dbprotokol: DbProtokol = DbProtokol(UidREF(id), obj.name, obj.humanName, obj.indx, prefix, weight, crc, optSvetofor, modified)
+
+        listStatesToInsert = listStatesToInsert :+ dbprotokol
+
         val optPerimeters = objmessage match {
           case NoCard(prefix, perimeters, weight, crc, svetofor) => Some(DbPerimeters(UidREF(id), perimeters, modified))
           case ProtocolRail.RailWeight(prefix, weight) => None
           case WithCard(prefix, perimeters, weight, crc, card, typeCard, svetofor) => Some(DbPerimeters(UidREF(id), perimeters, modified))
           case _ => None
         }
-
-        val dbprotokol: DbProtokol = DbProtokol(UidREF(id), obj.name, obj.humanName, obj.indx, prefix, weight, crc, optSvetofor, modified)
-
-        listStatesToInsert = listStatesToInsert :+ dbprotokol
 
         if (optPerimeters.isDefined) {
           listPerimetersToInsert = listPerimetersToInsert :+ optPerimeters.get
