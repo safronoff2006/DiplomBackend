@@ -3,7 +3,7 @@ package services.businesslogic.statemachines.typed
 import akka.NotUsed
 import akka.actor.typed._
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
-import akka.stream.CompletionStrategy
+import akka.stream.{CompletionStrategy, OverflowStrategy}
 import akka.stream.scaladsl.{Broadcast, Flow, Sink, Source}
 import akka.stream.typed.scaladsl.ActorSource
 import models.extractors.NoCardOrWithCard
@@ -73,17 +73,18 @@ object StateMachineTyped {
 
     private def runStream(ackReceiver: ActorRef[Emitted.type])(implicit system: ActorSystem[_]): ActorRef[EventStream] = {
       val source: Source[EventStream, ActorRef[EventStream]] =
-        ActorSource.actorRefWithBackpressure[EventStream, Emitted.type](
+        //ActorSource.actorRefWithBackpressure[EventStream, Emitted.type](
+        ActorSource.actorRef[EventStream](
           // get demand signalled to this actor receiving Ack
-          ackTo = ackReceiver,
-          ackMessage = Emitted,
+          //ackTo = ackReceiver,
+          //ackMessage = Emitted,
           // complete when we send ReachedEnd
           completionMatcher = {
             case ReachedEnd => CompletionStrategy.draining
           },
           failureMatcher = {
             case FailureOccured(ex) => ex
-          })
+          }, bufferSize = 1000, overflowStrategy = OverflowStrategy.dropBuffer)
 
       val sourceCommand: Source[StateMachineCommand, ActorRef[EventStream]] = source
         .collect {

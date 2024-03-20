@@ -238,7 +238,7 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
         loger.info(s"work GetState $name    $getState", "GetState", "getState")
         work_
 
-      case _ => Behaviors.same
+      case _ =>  Behaviors.unhandled
 
     }
   }
@@ -289,7 +289,7 @@ class AutoStateMachineTyped(context: ActorContext[StateMachineCommand],
         cardProcessingBusy = false
         work_
 
-      case _ => Behaviors.same
+      case _ =>  Behaviors.unhandled
     }
 
   }
