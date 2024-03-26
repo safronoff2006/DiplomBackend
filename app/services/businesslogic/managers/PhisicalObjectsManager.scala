@@ -29,7 +29,6 @@ class PhisicalObjectsManager @Inject()(@Named("RailWeighbridge") rail: ActorRef[
     truck3 ! NameEvent("TruckScale[3]")
 
 
-
   def getPhisicalObjectByNameT(name: String): Option[ActorRef[PhisicalObjectEvent]] = {
     name match {
       case "RailWeighbridge" => Some(rail)
